@@ -1,0 +1,27 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://main/main.gd" id="1_main"]
+[ext_resource type="PackedScene" path="res://levels/movement_gym.tscn" id="2_level"]
+[ext_resource type="PackedScene" path="res://player/player.tscn" id="3_player"]
+[ext_resource type="PackedScene" path="res://camera/player_camera.tscn" id="4_camera"]
+[ext_resource type="Script" path="res://debug/trajectory_trail.gd" id="5_trail"]
+[ext_resource type="Script" path="res://ui/debug_hud.gd" id="6_hud"]
+
+[node name="Main" type="Node3D"]
+script = ExtResource("1_main")
+
+[node name="Level" parent="." instance=ExtResource("2_level")]
+
+[node name="Player" parent="." instance=ExtResource("3_player")]
+
+[node name="PlayerCamera" parent="." node_paths=PackedStringArray("target") instance=ExtResource("4_camera")]
+target = NodePath("../Player")
+
+[node name="TrajectoryTrail" type="MeshInstance3D" parent="." node_paths=PackedStringArray("player")]
+script = ExtResource("5_trail")
+player = NodePath("../Player")
+
+[node name="DebugHud" type="CanvasLayer" parent="." node_paths=PackedStringArray("player", "trail")]
+script = ExtResource("6_hud")
+player = NodePath("../Player")
+trail = NodePath("../TrajectoryTrail")

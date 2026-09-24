@@ -1,0 +1,826 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://levels/props/block.gd" id="1_7dg07"]
+[ext_resource type="Script" path="res://levels/props/moving_platform.gd" id="2_krjpb"]
+
+[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_c2m83"]
+sky_top_color = Color(0.32, 0.55, 0.92, 1)
+sky_horizon_color = Color(0.72, 0.84, 0.96, 1)
+ground_bottom_color = Color(0.4, 0.45, 0.52, 1)
+ground_horizon_color = Color(0.72, 0.84, 0.96, 1)
+sun_angle_max = 20.0
+
+[sub_resource type="Sky" id="Sky_4omcy"]
+sky_material = SubResource("ProceduralSkyMaterial_c2m83")
+
+[sub_resource type="Environment" id="Environment_d0l6w"]
+background_mode = 2
+sky = SubResource("Sky_4omcy")
+ambient_light_source = 3
+ambient_light_energy = 0.9
+tonemap_mode = 4
+ssao_enabled = true
+ssao_radius = 1.5
+ssao_intensity = 1.5
+glow_enabled = true
+glow_intensity = 0.4
+glow_bloom = 0.05
+fog_enabled = true
+fog_mode = 1
+fog_light_color = Color(0.7, 0.8, 0.93, 1)
+fog_density = 0.5
+fog_depth_begin = 60.0
+fog_depth_end = 260.0
+
+[node name="MovementGym" type="Node3D" unique_id=2076452375]
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=232651780]
+environment = SubResource("Environment_d0l6w")
+
+[node name="Sun" type="DirectionalLight3D" parent="." unique_id=416333408]
+transform = Transform3D(0.81915206, 0.45198438, -0.35312894, 0, 0.6156615, 0.7880107, 0.57357645, -0.6455006, 0.5043204, 0, 0, 0)
+light_energy = 1.2
+shadow_enabled = true
+directional_shadow_max_distance = 90.0
+
+[node name="Spawn" type="Node3D" parent="." unique_id=125770037]
+
+[node name="Ground" type="StaticBody3D" parent="Spawn" unique_id=1213964674]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, 0)
+script = ExtResource("1_7dg07")
+size = Vector3(260, 1, 260)
+color = Color(0.62, 0.66, 0.72, 1)
+
+[node name="SpawnPad" type="StaticBody3D" parent="Spawn" unique_id=1181062531]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.05, 0)
+script = ExtResource("1_7dg07")
+shape = 2
+size = Vector3(8, 0.1, 8)
+color = Color(0.78, 0.8, 0.85, 1)
+
+[node name="Label_ULTRAJUMP" type="Label3D" parent="Spawn" unique_id=1872983172]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 5.5, -7)
+pixel_size = 0.01
+modulate = Color(1, 0.55, 0.25, 1)
+outline_modulate = Color(0.1, 0.1, 0.16, 1)
+text = "ULTRAJUMP"
+font_size = 160
+outline_size = 26
+
+[node name="Label_movement gym  ·  F1 for " type="Label3D" parent="Spawn" unique_id=327070180]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4.3, -7)
+pixel_size = 0.01
+outline_modulate = Color(0.1, 0.1, 0.16, 1)
+text = "movement gym  ·  F1 for controls"
+font_size = 48
+outline_size = 8
+
+[node name="Stations" type="Node3D" parent="." unique_id=1598631608]
+
+[node name="Spawn" type="Marker3D" parent="Stations" unique_id=1209010716]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.2, 3)
+
+[node name="Jump heights" type="Marker3D" parent="Stations" unique_id=1562906398]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.1, -12)
+
+[node name="Long jump runway" type="Marker3D" parent="Stations" unique_id=826082654]
+transform = Transform3D(-4.371139e-08, 0, -1, 0, 1, 0, 1, 0, -4.371139e-08, 20, 3.1, -34)
+
+[node name="Wall kicks" type="Marker3D" parent="Stations" unique_id=1375484793]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -22.25, 0.1, -3)
+
+[node name="Slopes & stairs" type="Marker3D" parent="Stations" unique_id=1979010324]
+transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, 0, 0.1, 9)
+
+[node name="Ledges" type="Marker3D" parent="Stations" unique_id=1938549252]
+transform = Transform3D(-4.371139e-08, 0, -1, 0, 1, 0, 1, 0, -4.371139e-08, 15, 0.1, -2)
+
+[node name="Moving platforms" type="Marker3D" parent="Stations" unique_id=1043366322]
+transform = Transform3D(-4.371139e-08, 0, -1, 0, 1, 0, 1, 0, -4.371139e-08, -50, 4.1, -44)
+
+[node name="Tower course" type="Marker3D" parent="Stations" unique_id=571180591]
+transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, 45, 0.1, 27)
+
+[node name="JumpLadder" type="Node3D" parent="." unique_id=1382762670]
+
+[node name="Pillar1m" type="StaticBody3D" parent="JumpLadder" unique_id=704024195]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -15, 0.5, -20)
+script = ExtResource("1_7dg07")
+size = Vector3(3, 1, 3)
+color = Color(0.52, 0.7, 0.9, 1)
+
+[node name="Label_1 m" type="Label3D" parent="JumpLadder" unique_id=621270616]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -15, 1.7, -18.6)
+pixel_size = 0.01
+outline_modulate = Color(0.1, 0.1, 0.16, 1)
+text = "1 m"
+font_size = 64
+outline_size = 10
+
+[node name="Pillar2m" type="StaticBody3D" parent="JumpLadder" unique_id=381842923]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10, 1, -20)
+script = ExtResource("1_7dg07")
+size = Vector3(3, 2, 3)
+color = Color(0.5466666, 0.68333334, 0.9, 1)
+
+[node name="Label_2 m" type="Label3D" parent="JumpLadder" unique_id=1687110939]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10, 2.7, -18.6)
+pixel_size = 0.01
+outline_modulate = Color(0.1, 0.1, 0.16, 1)
+text = "2 m"
+font_size = 64
+outline_size = 10
+
+[node name="Pillar3m" type="StaticBody3D" parent="JumpLadder" unique_id=135692886]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5, 1.5, -20)
+script = ExtResource("1_7dg07")
+size = Vector3(3, 3, 3)
+color = Color(0.5733333, 0.6666667, 0.9, 1)
+
+[node name="Label_3 m" type="Label3D" parent="JumpLadder" unique_id=1160333515]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5, 3.7, -18.6)
+pixel_size = 0.01
+outline_modulate = Color(0.1, 0.1, 0.16, 1)
+text = "3 m"
+font_size = 64
+outline_size = 10
+
+[node name="Pillar4m" type="StaticBody3D" parent="JumpLadder" unique_id=473731263]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2, -20)
+script = ExtResource("1_7dg07")
+size = Vector3(3, 4, 3)
+color = Color(0.6, 0.65, 0.9, 1)
+
+[node name="Label_4 m" type="Label3D" parent="JumpLadder" unique_id=842854957]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4.7, -18.6)
+pixel_size = 0.01
+outline_modulate = Color(0.1, 0.1, 0.16, 1)
+text = "4 m"
+font_size = 64
+outline_size = 10
+
+[node name="Pillar5m" type="StaticBody3D" parent="JumpLadder" unique_id=625515763]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5, 2.5, -20)
+script = ExtResource("1_7dg07")
+size = Vector3(3, 5, 3)
+color = Color(0.62666667, 0.6333333, 0.9, 1)
+
+[node name="Label_5 m" type="Label3D" parent="JumpLadder" unique_id=78847669]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5, 5.7, -18.6)
+pixel_size = 0.01
+outline_modulate = Color(0.1, 0.1, 0.16, 1)
+text = "5 m"
+font_size = 64
+outline_size = 10
+
+[node name="Pillar6m" type="StaticBody3D" parent="JumpLadder" unique_id=1849537837]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10, 3, -20)
+script = ExtResource("1_7dg07")
+size = Vector3(3, 6, 3)
+color = Color(0.6533333, 0.6166667, 0.9, 1)
+
+[node name="Label_6 m" type="Label3D" parent="JumpLadder" unique_id=1416976621]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10, 6.7, -18.6)
+pixel_size = 0.01
+outline_modulate = Color(0.1, 0.1, 0.16, 1)
+text = "6 m"
+font_size = 64
+outline_size = 10
+
+[node name="Pillar7m" type="StaticBody3D" parent="JumpLadder" unique_id=1323982832]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 15, 3.5, -20)
+script = ExtResource("1_7dg07")
+size = Vector3(3, 7, 3)
+color = Color(0.68, 0.6, 0.9, 1)
+
+[node name="Label_7 m" type="Label3D" parent="JumpLadder" unique_id=115901483]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 15, 7.7, -18.6)
+pixel_size = 0.01
+outline_modulate = Color(0.1, 0.1, 0.16, 1)
+text = "7 m"
+font_size = 64
+outline_size = 10
+
+[node name="Label_Jump heights" type="Label3D" parent="JumpLadder" unique_id=368100186]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 9.5, -20)
+pixel_size = 0.01
+modulate = Color(1, 0.8, 0.3, 1)
+outline_modulate = Color(0.1, 0.1, 0.16, 1)
+text = "Jump heights"
+font_size = 72
+
+[node name="Label_single 2_1 · double 3_0 " type="Label3D" parent="JumpLadder" unique_id=911515880]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 8.7, -20)
+pixel_size = 0.01
+outline_modulate = Color(0.1, 0.1, 0.16, 1)
+text = "single 2.1 · double 3.0 · triple 4.6 · backflip 4.9 · ground pound jump 5.3"
+font_size = 36
+outline_size = 8
+
+[node name="LongJump" type="Node3D" parent="." unique_id=1537680369]
+
+[node name="Ramp" type="StaticBody3D" parent="LongJump" unique_id=559157399]
+transform = Transform3D(-4.371139e-08, 0, -1, 0, 1, 0, 1, 0, -4.371139e-08, 13.5, 1.5, -34)
+script = ExtResource("1_7dg07")
+shape = 1
+size = Vector3(6, 3, 9)
+color = Color(0.78, 0.8, 0.85, 1)
+
+[node name="Runway" type="StaticBody3D" parent="LongJump" unique_id=398516874]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 30, 1.5, -34)
+script = ExtResource("1_7dg07")
+size = Vector3(24, 3, 6)
+color = Color(0.93, 0.72, 0.45, 1)
+
+[node name="Label_6 m" type="Label3D" parent="LongJump" unique_id=1355454107]
+transform = Transform3D(-4.371139e-08, 0, -1, 0, 1, 0, 1, 0, -4.371139e-08, 45, 5.2, -34)
+pixel_size = 0.01
+modulate = Color(1, 0.8, 0.3, 1)
+outline_modulate = Color(0.1, 0.1, 0.16, 1)
+text = "6 m"
+font_size = 80
+outline_size = 13
+
+[node name="Landing6m" type="StaticBody3D" parent="LongJump" unique_id=434892898]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 51, 1.5, -34)
+script = ExtResource("1_7dg07")
+size = Vector3(6, 3, 6)
+color = Color(0.8556, 0.66240007, 0.414, 1)
+
+[node name="Label_8 m" type="Label3D" parent="LongJump" unique_id=621057410]
+transform = Transform3D(-4.371139e-08, 0, -1, 0, 1, 0, 1, 0, -4.371139e-08, 58, 5.2, -34)
+pixel_size = 0.01
+modulate = Color(1, 0.8, 0.3, 1)
+outline_modulate = Color(0.1, 0.1, 0.16, 1)
+text = "8 m"
+font_size = 80
+outline_size = 13
+
+[node name="Landing8m" type="StaticBody3D" parent="LongJump" unique_id=604929870]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 65, 1.5, -34)
+script = ExtResource("1_7dg07")
+size = Vector3(6, 3, 6)
+color = Color(0.8308, 0.64320004, 0.40199998, 1)
+
+[node name="Label_10 m" type="Label3D" parent="LongJump" unique_id=2088207973]
+transform = Transform3D(-4.371139e-08, 0, -1, 0, 1, 0, 1, 0, -4.371139e-08, 73, 5.2, -34)
+pixel_size = 0.01
+modulate = Color(1, 0.8, 0.3, 1)
+outline_modulate = Color(0.1, 0.1, 0.16, 1)
+text = "10 m"
+font_size = 80
+outline_size = 13
+
+[node name="Landing10m" type="StaticBody3D" parent="LongJump" unique_id=567038383]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 81, 1.5, -34)
+script = ExtResource("1_7dg07")
+size = Vector3(6, 3, 6)
+color = Color(0.806, 0.624, 0.39, 1)
+
+[node name="Label_12 m" type="Label3D" parent="LongJump" unique_id=75025550]
+transform = Transform3D(-4.371139e-08, 0, -1, 0, 1, 0, 1, 0, -4.371139e-08, 90, 5.2, -34)
+pixel_size = 0.01
+modulate = Color(1, 0.8, 0.3, 1)
+outline_modulate = Color(0.1, 0.1, 0.16, 1)
+text = "12 m"
+font_size = 80
+outline_size = 13
+
+[node name="Landing12m" type="StaticBody3D" parent="LongJump" unique_id=1125278419]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 100, 1.5, -34)
+script = ExtResource("1_7dg07")
+size = Vector3(8, 3, 6)
+color = Color(0.78120005, 0.60480005, 0.378, 1)
+
+[node name="Label_Long jump_ run, crouch, " type="Label3D" parent="LongJump" unique_id=1638191199]
+transform = Transform3D(-4.371139e-08, 0, -1, 0, 1, 0, 1, 0, -4.371139e-08, 24, 6.5, -34)
+pixel_size = 0.01
+outline_modulate = Color(0.1, 0.1, 0.16, 1)
+text = "Long jump: run, crouch, jump"
+font_size = 56
+outline_size = 9
+
+[node name="WallKicks" type="Node3D" parent="." unique_id=1727642612]
+
+[node name="ShaftEast" type="StaticBody3D" parent="WallKicks" unique_id=1909781275]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -19.5, 8, -12)
+script = ExtResource("1_7dg07")
+size = Vector3(1, 16, 10)
+color = Color(0.78, 0.8, 0.85, 1)
+
+[node name="ShaftWest" type="StaticBody3D" parent="WallKicks" unique_id=1677032257]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -25, 8, -12)
+script = ExtResource("1_7dg07")
+size = Vector3(1, 16, 10)
+color = Color(0.78, 0.8, 0.85, 1)
+
+[node name="Rooftop" type="StaticBody3D" parent="WallKicks" unique_id=739485859]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -28.5, 15.75, -12)
+script = ExtResource("1_7dg07")
+size = Vector3(6, 0.5, 10)
+color = Color(0.55, 0.8, 0.55, 1)
+
+[node name="Label_Wall kick shaft" type="Label3D" parent="WallKicks" unique_id=1942268573]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -22.25, 17.5, -6.5)
+pixel_size = 0.01
+modulate = Color(1, 0.8, 0.3, 1)
+outline_modulate = Color(0.1, 0.1, 0.16, 1)
+text = "Wall kick shaft"
+font_size = 72
+
+[node name="Label_16 m" type="Label3D" parent="WallKicks" unique_id=589136094]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -22.25, 16.6, -6.8)
+pixel_size = 0.01
+outline_modulate = Color(0.1, 0.1, 0.16, 1)
+text = "16 m"
+font_size = 48
+outline_size = 8
+
+[node name="SlideWall" type="StaticBody3D" parent="WallKicks" unique_id=819477052]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -40, 7, -12)
+script = ExtResource("1_7dg07")
+size = Vector3(1, 14, 12)
+color = Color(0.78, 0.8, 0.85, 1)
+
+[node name="WallLedge1" type="StaticBody3D" parent="WallKicks" unique_id=1496567181]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -38.75, 3.75, -15.5)
+script = ExtResource("1_7dg07")
+size = Vector3(1.5, 0.5, 2.5)
+color = Color(0.55, 0.8, 0.55, 1)
+
+[node name="WallLedge2" type="StaticBody3D" parent="WallKicks" unique_id=1138672320]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -38.75, 7.25, -12)
+script = ExtResource("1_7dg07")
+size = Vector3(1.5, 0.5, 2.5)
+color = Color(0.55, 0.8, 0.55, 1)
+
+[node name="WallLedge3" type="StaticBody3D" parent="WallKicks" unique_id=1404913849]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -38.75, 10.75, -8.5)
+script = ExtResource("1_7dg07")
+size = Vector3(1.5, 0.5, 2.5)
+color = Color(0.55, 0.8, 0.55, 1)
+
+[node name="Label_Wall slide & ledges" type="Label3D" parent="WallKicks" unique_id=301569082]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -38, 15.2, -12)
+pixel_size = 0.01
+outline_modulate = Color(0.1, 0.1, 0.16, 1)
+text = "Wall slide & ledges"
+font_size = 56
+outline_size = 9
+
+[node name="SlopesAndStairs" type="Node3D" parent="." unique_id=549129523]
+
+[node name="Ramp15" type="StaticBody3D" parent="SlopesAndStairs" unique_id=74109221]
+transform = Transform3D(-1, 0, 8.742278e-08, 0, 1, 0, -8.742278e-08, 0, -1, -14, 1.6076951, 20)
+script = ExtResource("1_7dg07")
+shape = 1
+size = Vector3(4, 3.2153902, 12)
+color = Color(0.55, 0.8, 0.55, 1)
+
+[node name="Ramp15Top" type="StaticBody3D" parent="SlopesAndStairs" unique_id=934209585]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -14, 1.6076951, 28)
+script = ExtResource("1_7dg07")
+size = Vector3(4, 3.2153902, 4)
+color = Color(0.495, 0.71999997, 0.495, 1)
+
+[node name="Label_15°" type="Label3D" parent="SlopesAndStairs" unique_id=1912415430]
+transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, -14, 2, 13)
+pixel_size = 0.01
+outline_modulate = Color(0.1, 0.1, 0.16, 1)
+text = "15°"
+font_size = 64
+outline_size = 10
+
+[node name="Ramp30" type="StaticBody3D" parent="SlopesAndStairs" unique_id=576597680]
+transform = Transform3D(-1, 0, 8.742278e-08, 0, 1, 0, -8.742278e-08, 0, -1, -8, 2.309401, 18)
+script = ExtResource("1_7dg07")
+shape = 1
+size = Vector3(4, 4.618802, 8)
+color = Color(0.55, 0.8, 0.55, 1)
+
+[node name="Ramp30Top" type="StaticBody3D" parent="SlopesAndStairs" unique_id=1578555992]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8, 2.309401, 24)
+script = ExtResource("1_7dg07")
+size = Vector3(4, 4.618802, 4)
+color = Color(0.495, 0.71999997, 0.495, 1)
+
+[node name="Label_30°" type="Label3D" parent="SlopesAndStairs" unique_id=1671106901]
+transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, -8, 2, 13)
+pixel_size = 0.01
+outline_modulate = Color(0.1, 0.1, 0.16, 1)
+text = "30°"
+font_size = 64
+outline_size = 10
+
+[node name="Ramp45" type="StaticBody3D" parent="SlopesAndStairs" unique_id=1474011275]
+transform = Transform3D(-1, 0, 8.742278e-08, 0, 1, 0, -8.742278e-08, 0, -1, -2, 2.5, 16.5)
+script = ExtResource("1_7dg07")
+shape = 1
+size = Vector3(4, 5, 5)
+color = Color(0.55, 0.8, 0.55, 1)
+
+[node name="Ramp45Top" type="StaticBody3D" parent="SlopesAndStairs" unique_id=1857381356]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 2.5, 21)
+script = ExtResource("1_7dg07")
+size = Vector3(4, 5, 4)
+color = Color(0.495, 0.71999997, 0.495, 1)
+
+[node name="Label_45°" type="Label3D" parent="SlopesAndStairs" unique_id=538759753]
+transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, -2, 2, 13)
+pixel_size = 0.01
+outline_modulate = Color(0.1, 0.1, 0.16, 1)
+text = "45°"
+font_size = 64
+outline_size = 10
+
+[node name="Ramp55" type="StaticBody3D" parent="SlopesAndStairs" unique_id=440835269]
+transform = Transform3D(-1, 0, 8.742278e-08, 0, 1, 0, -8.742278e-08, 0, -1, 4, 2.856296, 16)
+script = ExtResource("1_7dg07")
+shape = 1
+size = Vector3(4, 5.712592, 4)
+color = Color(0.9, 0.6, 0.72, 1)
+
+[node name="Ramp55Top" type="StaticBody3D" parent="SlopesAndStairs" unique_id=1829147087]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4, 2.856296, 20)
+script = ExtResource("1_7dg07")
+size = Vector3(4, 5.712592, 4)
+color = Color(0.80999994, 0.54, 0.648, 1)
+
+[node name="Label_55°" type="Label3D" parent="SlopesAndStairs" unique_id=181637950]
+transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, 4, 2, 13)
+pixel_size = 0.01
+modulate = Color(1, 0.8, 0.3, 1)
+outline_modulate = Color(0.1, 0.1, 0.16, 1)
+text = "55°"
+font_size = 64
+outline_size = 10
+
+[node name="Label_Slopes_ 46° and steeper " type="Label3D" parent="SlopesAndStairs" unique_id=1479836138]
+transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, -5, 4, 13)
+pixel_size = 0.01
+outline_modulate = Color(0.1, 0.1, 0.16, 1)
+text = "Slopes: 46° and steeper make you slide"
+font_size = 40
+outline_size = 8
+
+[node name="Step25_1" type="StaticBody3D" parent="SlopesAndStairs" unique_id=1942692210]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 11, 0.125, 14.3)
+script = ExtResource("1_7dg07")
+size = Vector3(4, 0.25, 0.6)
+color = Color(0.78, 0.8, 0.85, 1)
+
+[node name="Step25_2" type="StaticBody3D" parent="SlopesAndStairs" unique_id=1863099115]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 11, 0.25, 14.9)
+script = ExtResource("1_7dg07")
+size = Vector3(4, 0.5, 0.6)
+color = Color(0.78, 0.8, 0.85, 1)
+
+[node name="Step25_3" type="StaticBody3D" parent="SlopesAndStairs" unique_id=101938244]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 11, 0.375, 15.5)
+script = ExtResource("1_7dg07")
+size = Vector3(4, 0.75, 0.6)
+color = Color(0.78, 0.8, 0.85, 1)
+
+[node name="Step25_4" type="StaticBody3D" parent="SlopesAndStairs" unique_id=21127013]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 11, 0.5, 16.1)
+script = ExtResource("1_7dg07")
+size = Vector3(4, 1, 0.6)
+color = Color(0.78, 0.8, 0.85, 1)
+
+[node name="Step25_5" type="StaticBody3D" parent="SlopesAndStairs" unique_id=1060339232]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 11, 0.625, 16.7)
+script = ExtResource("1_7dg07")
+size = Vector3(4, 1.25, 0.6)
+color = Color(0.78, 0.8, 0.85, 1)
+
+[node name="Step25_6" type="StaticBody3D" parent="SlopesAndStairs" unique_id=235217430]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 11, 0.75, 17.3)
+script = ExtResource("1_7dg07")
+size = Vector3(4, 1.5, 0.6)
+color = Color(0.78, 0.8, 0.85, 1)
+
+[node name="Step25_7" type="StaticBody3D" parent="SlopesAndStairs" unique_id=1684423149]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 11, 0.875, 17.9)
+script = ExtResource("1_7dg07")
+size = Vector3(4, 1.75, 0.6)
+color = Color(0.78, 0.8, 0.85, 1)
+
+[node name="Step25_8" type="StaticBody3D" parent="SlopesAndStairs" unique_id=1506495488]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 11, 1, 18.5)
+script = ExtResource("1_7dg07")
+size = Vector3(4, 2, 0.6)
+color = Color(0.78, 0.8, 0.85, 1)
+
+[node name="Step25_9" type="StaticBody3D" parent="SlopesAndStairs" unique_id=2064057548]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 11, 1.125, 19.1)
+script = ExtResource("1_7dg07")
+size = Vector3(4, 2.25, 0.6)
+color = Color(0.78, 0.8, 0.85, 1)
+
+[node name="Step25_10" type="StaticBody3D" parent="SlopesAndStairs" unique_id=1371586117]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 11, 1.25, 19.7)
+script = ExtResource("1_7dg07")
+size = Vector3(4, 2.5, 0.6)
+color = Color(0.78, 0.8, 0.85, 1)
+
+[node name="Step25_11" type="StaticBody3D" parent="SlopesAndStairs" unique_id=1766331281]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 11, 1.375, 20.3)
+script = ExtResource("1_7dg07")
+size = Vector3(4, 2.75, 0.6)
+color = Color(0.78, 0.8, 0.85, 1)
+
+[node name="Step25_12" type="StaticBody3D" parent="SlopesAndStairs" unique_id=757322007]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 11, 1.5, 20.9)
+script = ExtResource("1_7dg07")
+size = Vector3(4, 3, 0.6)
+color = Color(0.78, 0.8, 0.85, 1)
+
+[node name="Landing25" type="StaticBody3D" parent="SlopesAndStairs" unique_id=1232478476]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 11, 1.5, 23.2)
+script = ExtResource("1_7dg07")
+size = Vector3(4, 3, 4)
+color = Color(0.70199996, 0.71999997, 0.765, 1)
+
+[node name="Label_0_25 m steps" type="Label3D" parent="SlopesAndStairs" unique_id=2077515241]
+transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, 11, 1.6, 13)
+pixel_size = 0.01
+outline_modulate = Color(0.1, 0.1, 0.16, 1)
+text = "0.25 m steps"
+font_size = 44
+outline_size = 8
+
+[node name="Step35_1" type="StaticBody3D" parent="SlopesAndStairs" unique_id=1627533037]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 17, 0.175, 14.3)
+script = ExtResource("1_7dg07")
+size = Vector3(4, 0.35, 0.6)
+color = Color(0.78, 0.8, 0.85, 1)
+
+[node name="Step35_2" type="StaticBody3D" parent="SlopesAndStairs" unique_id=714059164]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 17, 0.35, 14.9)
+script = ExtResource("1_7dg07")
+size = Vector3(4, 0.7, 0.6)
+color = Color(0.78, 0.8, 0.85, 1)
+
+[node name="Step35_3" type="StaticBody3D" parent="SlopesAndStairs" unique_id=1813361815]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 17, 0.525, 15.5)
+script = ExtResource("1_7dg07")
+size = Vector3(4, 1.05, 0.6)
+color = Color(0.78, 0.8, 0.85, 1)
+
+[node name="Step35_4" type="StaticBody3D" parent="SlopesAndStairs" unique_id=441980583]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 17, 0.7, 16.1)
+script = ExtResource("1_7dg07")
+size = Vector3(4, 1.4, 0.6)
+color = Color(0.78, 0.8, 0.85, 1)
+
+[node name="Step35_5" type="StaticBody3D" parent="SlopesAndStairs" unique_id=91292115]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 17, 0.875, 16.7)
+script = ExtResource("1_7dg07")
+size = Vector3(4, 1.75, 0.6)
+color = Color(0.78, 0.8, 0.85, 1)
+
+[node name="Step35_6" type="StaticBody3D" parent="SlopesAndStairs" unique_id=869255854]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 17, 1.05, 17.3)
+script = ExtResource("1_7dg07")
+size = Vector3(4, 2.1, 0.6)
+color = Color(0.78, 0.8, 0.85, 1)
+
+[node name="Step35_7" type="StaticBody3D" parent="SlopesAndStairs" unique_id=1544752545]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 17, 1.225, 17.9)
+script = ExtResource("1_7dg07")
+size = Vector3(4, 2.45, 0.6)
+color = Color(0.78, 0.8, 0.85, 1)
+
+[node name="Step35_8" type="StaticBody3D" parent="SlopesAndStairs" unique_id=1164160255]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 17, 1.4, 18.5)
+script = ExtResource("1_7dg07")
+size = Vector3(4, 2.8, 0.6)
+color = Color(0.78, 0.8, 0.85, 1)
+
+[node name="Landing35" type="StaticBody3D" parent="SlopesAndStairs" unique_id=1499125651]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 17, 1.4, 20.8)
+script = ExtResource("1_7dg07")
+size = Vector3(4, 2.8, 4)
+color = Color(0.70199996, 0.71999997, 0.765, 1)
+
+[node name="Label_0_35 m steps" type="Label3D" parent="SlopesAndStairs" unique_id=828418960]
+transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, 17, 1.6, 13)
+pixel_size = 0.01
+outline_modulate = Color(0.1, 0.1, 0.16, 1)
+text = "0.35 m steps"
+font_size = 44
+outline_size = 8
+
+[node name="SlideHill" type="StaticBody3D" parent="SlopesAndStairs" unique_id=2091027566]
+transform = Transform3D(-1, 0, 8.742278e-08, 0, 1, 0, -8.742278e-08, 0, -1, -28, 4.25, 28)
+script = ExtResource("1_7dg07")
+shape = 1
+size = Vector3(6, 8.5, 24)
+color = Color(0.52, 0.7, 0.9, 1)
+
+[node name="SlideHillTop" type="StaticBody3D" parent="SlopesAndStairs" unique_id=1618515732]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -28, 4.25, 43)
+script = ExtResource("1_7dg07")
+size = Vector3(6, 8.5, 6)
+color = Color(0.46799996, 0.63, 0.80999994, 1)
+
+[node name="Label_Slide hill_ crouch-slide" type="Label3D" parent="SlopesAndStairs" unique_id=983427988]
+transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, -28, 2.2, 14)
+pixel_size = 0.01
+outline_modulate = Color(0.1, 0.1, 0.16, 1)
+text = "Slide hill: crouch-slide down, jump"
+font_size = 44
+outline_size = 8
+
+[node name="Ledges" type="Node3D" parent="." unique_id=1368710392]
+
+[node name="Ledge2_4" type="StaticBody3D" parent="Ledges" unique_id=2094294211]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 24, 1.2, -8)
+script = ExtResource("1_7dg07")
+size = Vector3(4, 2.4, 5)
+color = Color(0.68, 0.6, 0.9, 1)
+
+[node name="Label_2_4 m · mantle" type="Label3D" parent="Ledges" unique_id=147658970]
+transform = Transform3D(-4.371139e-08, 0, -1, 0, 1, 0, 1, 0, -4.371139e-08, 21.9, 3, -8)
+pixel_size = 0.01
+outline_modulate = Color(0.1, 0.1, 0.16, 1)
+text = "2.4 m · mantle"
+font_size = 44
+outline_size = 8
+
+[node name="Ledge3_2" type="StaticBody3D" parent="Ledges" unique_id=1290234258]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 24, 1.6, -2)
+script = ExtResource("1_7dg07")
+size = Vector3(4, 3.2, 5)
+color = Color(0.712, 0.64000005, 0.90999997, 1)
+
+[node name="Label_3_2 m · grab" type="Label3D" parent="Ledges" unique_id=34349455]
+transform = Transform3D(-4.371139e-08, 0, -1, 0, 1, 0, 1, 0, -4.371139e-08, 21.9, 3.8, -2)
+pixel_size = 0.01
+outline_modulate = Color(0.1, 0.1, 0.16, 1)
+text = "3.2 m · grab"
+font_size = 44
+outline_size = 8
+
+[node name="Ledge4_0" type="StaticBody3D" parent="Ledges" unique_id=434165744]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 24, 2, 4)
+script = ExtResource("1_7dg07")
+size = Vector3(4, 4, 5)
+color = Color(0.744, 0.68, 0.91999996, 1)
+
+[node name="Label_4_0 m · grab" type="Label3D" parent="Ledges" unique_id=345577705]
+transform = Transform3D(-4.371139e-08, 0, -1, 0, 1, 0, 1, 0, -4.371139e-08, 21.9, 4.6, 4)
+pixel_size = 0.01
+outline_modulate = Color(0.1, 0.1, 0.16, 1)
+text = "4.0 m · grab"
+font_size = 44
+outline_size = 8
+
+[node name="MovingPlatforms" type="Node3D" parent="." unique_id=385388923]
+
+[node name="TowerA" type="StaticBody3D" parent="MovingPlatforms" unique_id=1256875595]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -50, 2, -44)
+script = ExtResource("1_7dg07")
+size = Vector3(4, 4, 4)
+color = Color(0.78, 0.8, 0.85, 1)
+
+[node name="TowerB" type="StaticBody3D" parent="MovingPlatforms" unique_id=260340179]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -30, 2, -44)
+script = ExtResource("1_7dg07")
+size = Vector3(4, 4, 4)
+color = Color(0.78, 0.8, 0.85, 1)
+
+[node name="Shuttle" type="AnimatableBody3D" parent="MovingPlatforms" unique_id=440216888]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -44.5, 3.75, -44)
+script = ExtResource("2_krjpb")
+travel = Vector3(9, 0, 0)
+pause_time = 0.8
+
+[node name="TowerC" type="StaticBody3D" parent="MovingPlatforms" unique_id=1879692315]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -60, 5, -44)
+script = ExtResource("1_7dg07")
+size = Vector3(4, 10, 4)
+color = Color(0.78, 0.8, 0.85, 1)
+
+[node name="Elevator" type="AnimatableBody3D" parent="MovingPlatforms" unique_id=1100654025]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -56.5, 0.25, -44)
+script = ExtResource("2_krjpb")
+travel = Vector3(0, 9.75, 0)
+travel_time = 4.0
+pause_time = 1.2
+
+[node name="Spinner" type="AnimatableBody3D" parent="MovingPlatforms" unique_id=164470564]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -40, 1.25, -30)
+script = ExtResource("2_krjpb")
+shape = 2
+size = Vector3(9, 0.5, 9)
+travel = Vector3(0, 0, 0)
+travel_time = 1.0
+pause_time = 0.0
+spin_degrees_per_second = 30.0
+
+[node name="Label_Moving platforms" type="Label3D" parent="MovingPlatforms" unique_id=1238974852]
+transform = Transform3D(-4.371139e-08, 0, -1, 0, 1, 0, 1, 0, -4.371139e-08, -40, 7.5, -44)
+pixel_size = 0.01
+modulate = Color(1, 0.8, 0.3, 1)
+outline_modulate = Color(0.1, 0.1, 0.16, 1)
+text = "Moving platforms"
+font_size = 64
+outline_size = 10
+
+[node name="TowerCourse" type="Node3D" parent="." unique_id=1836693545]
+
+[node name="Tower" type="StaticBody3D" parent="TowerCourse" unique_id=1600788450]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 45, 10, 40)
+script = ExtResource("1_7dg07")
+shape = 2
+size = Vector3(6, 20, 6)
+color = Color(0.78, 0.8, 0.85, 1)
+
+[node name="Step1" type="StaticBody3D" parent="TowerCourse" unique_id=878447239]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 37.48246, 0.95, 37.26384)
+script = ExtResource("1_7dg07")
+size = Vector3(3, 0.5, 3)
+color = Color(0.52, 0.7, 0.9, 1)
+
+[node name="Step2" type="StaticBody3D" parent="TowerCourse" unique_id=1902120342]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 40.760647, 2.7, 33.215614)
+script = ExtResource("1_7dg07")
+size = Vector3(3, 0.5, 3)
+color = Color(0.55454546, 0.6909091, 0.88363636, 1)
+
+[node name="Step3" type="StaticBody3D" parent="TowerCourse" unique_id=1647140071]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 45.836227, 4.45, 32.043823)
+script = ExtResource("1_7dg07")
+size = Vector3(3, 0.5, 3)
+color = Color(0.5890909, 0.6818182, 0.86727273, 1)
+
+[node name="Step4" type="StaticBody3D" parent="TowerCourse" unique_id=1707519582]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 50.557266, 6.2, 34.24528)
+script = ExtResource("1_7dg07")
+size = Vector3(3, 0.5, 3)
+color = Color(0.62363636, 0.6727273, 0.85090905, 1)
+
+[node name="Step5" type="StaticBody3D" parent="TowerCourse" unique_id=1505715874]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 52.922146, 7.95, 38.886616)
+script = ExtResource("1_7dg07")
+size = Vector3(3, 0.5, 3)
+color = Color(0.6581818, 0.6636364, 0.83454543, 1)
+
+[node name="Step6" type="StaticBody3D" parent="TowerCourse" unique_id=1526908491]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 51.928204, 9.7, 44)
+script = ExtResource("1_7dg07")
+size = Vector3(3, 0.5, 3)
+color = Color(0.69272727, 0.6545454, 0.8181818, 1)
+
+[node name="Step7" type="StaticBody3D" parent="TowerCourse" unique_id=1191377045]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 47.996853, 11.45, 47.417473)
+script = ExtResource("1_7dg07")
+size = Vector3(3, 0.5, 3)
+color = Color(0.72727275, 0.6454545, 0.8018182, 1)
+
+[node name="Step8" type="StaticBody3D" parent="TowerCourse" unique_id=509798824]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 42.794903, 13.2, 47.690094)
+script = ExtResource("1_7dg07")
+size = Vector3(3, 0.5, 3)
+color = Color(0.7618182, 0.6363636, 0.7854546, 1)
+
+[node name="Step9" type="StaticBody3D" parent="TowerCourse" unique_id=12204562]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 38.527863, 14.95, 44.702282)
+script = ExtResource("1_7dg07")
+size = Vector3(3, 0.5, 3)
+color = Color(0.7963636, 0.6272727, 0.7690909, 1)
+
+[node name="Step10" type="StaticBody3D" parent="TowerCourse" unique_id=124262626]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 37.004875, 16.7, 39.720802)
+script = ExtResource("1_7dg07")
+size = Vector3(3, 0.5, 3)
+color = Color(0.8309091, 0.6181818, 0.75272727, 1)
+
+[node name="Step11" type="StaticBody3D" parent="TowerCourse" unique_id=594645616]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 38.871643, 18.45, 34.8577)
+script = ExtResource("1_7dg07")
+size = Vector3(3, 0.5, 3)
+color = Color(0.86545455, 0.6090909, 0.73636365, 1)
+
+[node name="Flagpole" type="StaticBody3D" parent="TowerCourse" unique_id=1129666967]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 45, 21.5, 40)
+script = ExtResource("1_7dg07")
+shape = 2
+size = Vector3(0.2, 3, 0.2)
+color = Color(0.9, 0.9, 0.9, 1)
+
+[node name="Flag" type="StaticBody3D" parent="TowerCourse" unique_id=1949025378]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 45.8, 22.4, 40)
+script = ExtResource("1_7dg07")
+size = Vector3(1.4, 0.9, 0.1)
+color = Color(1, 0.8, 0.3, 1)
+
+[node name="Label_Tower climb" type="Label3D" parent="TowerCourse" unique_id=1401348867]
+transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, 45, 4, 31.5)
+pixel_size = 0.01
+modulate = Color(1, 0.8, 0.3, 1)
+outline_modulate = Color(0.1, 0.1, 0.16, 1)
+text = "Tower climb"
+font_size = 64
+outline_size = 10

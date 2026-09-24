@@ -27,6 +27,9 @@
 [ext_resource type="Script" path="res://player/states/ledge_hang.gd" id="s21_ledge_hang"]
 [ext_resource type="Script" path="res://player/states/ledge_climb.gd" id="s22_ledge_climb"]
 [ext_resource type="Script" path="res://player/states/ledge_jump.gd" id="s23_ledge_jump"]
+[ext_resource type="Script" path="res://player/model/player_model.gd" id="4_model"]
+[ext_resource type="Script" path="res://player/effects/player_effects.gd" id="5_effects"]
+[ext_resource type="Script" path="res://player/effects/player_audio.gd" id="6_audio"]
 
 [sub_resource type="CylinderShape3D" id="CylinderShape3D_body"]
 height = 1.5
@@ -40,6 +43,15 @@ settings = ExtResource("2_settings")
 [node name="CollisionShape3D" type="CollisionShape3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.75, 0)
 shape = SubResource("CylinderShape3D_body")
+
+[node name="Model" type="Node3D" parent="."]
+script = ExtResource("4_model")
+
+[node name="Effects" type="Node3D" parent="."]
+script = ExtResource("5_effects")
+
+[node name="Audio" type="Node" parent="."]
+script = ExtResource("6_audio")
 
 [node name="StateMachine" type="Node" parent="." node_paths=PackedStringArray("initial_state")]
 script = ExtResource("3_machine")
