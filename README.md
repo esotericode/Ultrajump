@@ -104,6 +104,16 @@ tests/                Headless movement tests
 tools/                Script that generated the movement gym
 ```
 
+### Engine setup
+
+- **Jolt** physics, stepped at **120 Hz** with **physics interpolation** on,
+  so movement is responsive and smooth at any frame rate. The camera follows
+  the interpolated transform every rendered frame.
+- **Forward+** renderer, 4× MSAA. The character's collider is a cylinder
+  (flat feet: stable on ledge edges, predictable on steps).
+- Physics layers: 1 = World (everything the player and camera collide with),
+  2 = Player.
+
 ### How the character is put together
 
 - **`Player`** holds what every state shares: the input snapshot and press

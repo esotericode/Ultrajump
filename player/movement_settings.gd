@@ -35,21 +35,27 @@ extends Resource
 @export_range(60.0, 180.0, 1.0, "suffix:°") var skid_angle := 130.0
 ## Minimum speed for a reversal to skid instead of just turning.
 @export_range(0.0, 20.0, 0.1, "suffix:m/s") var skid_min_speed := 5.0
+## How hard a skid brakes.
 @export_range(1.0, 200.0, 0.5, "suffix:m/s²") var skid_deceleration := 42.0
 ## The skid always ends (and you turn around) after this long.
 @export_range(0.05, 1.0, 0.01, "suffix:s") var skid_max_time := 0.3
 ## Jump during a skid to side flip.
 @export_range(0.5, 15.0, 0.05, "suffix:m") var side_flip_height := 4.3
+## Horizontal speed of a side flip, in the new direction.
 @export_range(0.0, 20.0, 0.1, "suffix:m/s") var side_flip_speed := 4.5
 
 @export_group("Crouch & Slide")
+## Top speed while crouched and moving.
 @export_range(0.0, 10.0, 0.1, "suffix:m/s") var crawl_speed := 2.5
 ## Crouching faster than this starts a crouch slide (jump out of it to long jump).
 @export_range(0.0, 20.0, 0.1, "suffix:m/s") var crouch_slide_min_speed := 4.0
+## How quickly a crouch slide slows down on flat ground.
 @export_range(0.0, 100.0, 0.5, "suffix:m/s²") var crouch_slide_friction := 11.0
 ## Fraction of gravity that pulls slides (crouch and belly) down walkable slopes.
 @export_range(0.0, 3.0, 0.05) var slide_slope_acceleration := 0.9
+## How fast the stick can steer a crouch slide.
 @export_range(0.0, 1080.0, 5.0, "suffix:°/s") var slide_turn_speed := 120.0
+## Speed limit for all slides, however steep the slope.
 @export_range(1.0, 50.0, 0.5, "suffix:m/s") var slide_max_speed := 22.0
 
 @export_group("Air")
@@ -63,7 +69,9 @@ extends Resource
 @export_range(0.0, 10.0, 0.1, "suffix:m/s") var apex_speed_threshold := 2.5
 ## Gravity multiplier at the apex while jump is held. Lower = floatier hang time.
 @export_range(0.05, 1.0, 0.01) var apex_gravity_multiplier := 0.55
+## Maximum falling speed.
 @export_range(1.0, 100.0, 0.5, "suffix:m/s") var terminal_velocity := 32.0
+## How quickly the stick changes your velocity in the air.
 @export_range(0.0, 150.0, 0.5, "suffix:m/s²") var air_acceleration := 24.0
 ## Air control can push you up to this speed. Faster momentum is kept, not clamped.
 @export_range(0.0, 30.0, 0.1, "suffix:m/s") var air_max_speed := 10.0
@@ -79,11 +87,15 @@ extends Resource
 @export_range(0.0, 0.5, 0.01, "suffix:s") var input_buffer_time := 0.12
 
 @export_group("Jump Chain")
+## Apex height of the first jump of the chain (and of plain jumps).
 @export_range(0.5, 15.0, 0.05, "suffix:m") var single_jump_height := 2.1
+## Apex height of the second jump of the chain.
 @export_range(0.5, 15.0, 0.05, "suffix:m") var double_jump_height := 3.0
+## Apex height of the third jump of the chain (always full height).
 @export_range(0.5, 15.0, 0.05, "suffix:m") var triple_jump_height := 4.6
 ## Jumping again within this time after landing continues the chain.
 @export_range(0.0, 1.0, 0.01, "suffix:s") var jump_chain_window := 0.2
+## You need at least this much speed for the second jump of the chain.
 @export_range(0.0, 20.0, 0.1, "suffix:m/s") var double_jump_min_speed := 1.0
 ## You need at least this much speed for the third jump of the chain.
 @export_range(0.0, 20.0, 0.1, "suffix:m/s") var triple_jump_min_speed := 6.5
@@ -91,7 +103,9 @@ extends Resource
 @export_group("Backflip")
 ## Jump while crouching (standing still) to backflip.
 @export_range(0.5, 15.0, 0.05, "suffix:m") var backflip_height := 4.9
+## Backward speed of a backflip.
 @export_range(0.0, 20.0, 0.1, "suffix:m/s") var backflip_back_speed := 3.5
+## Multiplies air control during a backflip.
 @export_range(0.0, 2.0, 0.05) var backflip_air_control := 0.4
 
 @export_group("Long Jump")
@@ -103,12 +117,15 @@ extends Resource
 @export_range(1.0, 40.0, 0.5, "suffix:m/s") var long_jump_max_speed := 18.0
 ## Crouch slides slower than this backflip instead of long jumping.
 @export_range(0.0, 20.0, 0.1, "suffix:m/s") var long_jump_min_speed := 4.0
+## Multiplies gravity during a long jump; lower flies further.
 @export_range(0.1, 2.0, 0.05) var long_jump_gravity_scale := 0.7
+## Multiplies air control during a long jump.
 @export_range(0.0, 2.0, 0.05) var long_jump_air_control := 0.35
 
 @export_group("Dive")
 ## Dive (in the air, or while running) to launch forward. Land to belly slide.
 @export_range(0.0, 20.0, 0.1, "suffix:m/s") var dive_speed_boost := 3.0
+## A dive always launches at least this fast.
 @export_range(0.0, 30.0, 0.1, "suffix:m/s") var dive_min_speed := 11.0
 ## The boost never pushes you past this speed (existing momentum is kept).
 @export_range(0.0, 40.0, 0.1, "suffix:m/s") var dive_max_speed := 16.0
@@ -116,11 +133,17 @@ extends Resource
 @export_range(0.0, 20.0, 0.1, "suffix:m/s") var dive_ground_hop := 5.5
 ## Minimum upward speed after an air dive.
 @export_range(-10.0, 20.0, 0.1, "suffix:m/s") var dive_air_hop := 3.0
+## Multiplies gravity while diving.
 @export_range(0.1, 3.0, 0.05) var dive_gravity_scale := 0.9
+## How fast the stick can steer a dive.
 @export_range(0.0, 720.0, 5.0, "suffix:°/s") var dive_steering := 90.0
+## How quickly a dive loses speed in the air.
 @export_range(0.0, 20.0, 0.1, "suffix:m/s²") var dive_air_drag := 1.5
+## How quickly a belly slide slows down on flat ground.
 @export_range(0.0, 100.0, 0.5, "suffix:m/s²") var belly_slide_friction := 9.0
+## How fast the stick can steer a belly slide.
 @export_range(0.0, 720.0, 5.0, "suffix:°/s") var belly_slide_turn_speed := 90.0
+## How long a stopped belly slide lies still before standing up.
 @export_range(0.0, 1.0, 0.01, "suffix:s") var belly_slide_getup_time := 0.18
 ## Jump (or dive) during a belly slide to roll out of it.
 @export_range(0.2, 10.0, 0.05, "suffix:m") var rollout_height := 1.3
@@ -130,14 +153,17 @@ extends Resource
 @export_range(0.0, 1.0, 0.01, "suffix:s") var ground_pound_hang_time := 0.28
 ## ...then drops at this speed.
 @export_range(1.0, 100.0, 0.5, "suffix:m/s") var ground_pound_drop_speed := 30.0
+## How long the landing lasts (the ground pound jump window).
 @export_range(0.0, 1.0, 0.01, "suffix:s") var ground_pound_land_time := 0.3
 ## Jump right after a ground pound lands for an extra high jump.
 @export_range(0.5, 15.0, 0.05, "suffix:m") var ground_pound_jump_height := 5.3
+## Horizontal speed of a ground pound jump, toward the stick.
 @export_range(0.0, 10.0, 0.1, "suffix:m/s") var ground_pound_jump_speed := 3.0
 ## Diving out of a ground pound is allowed after this long.
 @export_range(0.0, 0.5, 0.01, "suffix:s") var ground_pound_dive_delay := 0.08
 
 @export_group("Wall Slide & Kick")
+## Top speed sliding down a wall.
 @export_range(0.0, 20.0, 0.1, "suffix:m/s") var wall_slide_speed := 3.5
 ## How quickly a fast fall is braked down to [member wall_slide_speed].
 @export_range(1.0, 200.0, 0.5, "suffix:m/s²") var wall_slide_deceleration := 50.0
@@ -147,7 +173,9 @@ extends Resource
 @export_range(0.0, 10.0, 0.1, "suffix:m/s") var wall_slide_min_approach_speed := 1.0
 ## Hold away from the wall this long to let go.
 @export_range(0.0, 1.0, 0.01, "suffix:s") var wall_release_time := 0.15
+## Apex height of a wall kick.
 @export_range(0.5, 15.0, 0.05, "suffix:m") var wall_kick_height := 2.6
+## Speed a wall kick pushes you away from the wall.
 @export_range(0.0, 20.0, 0.1, "suffix:m/s") var wall_kick_speed := 7.5
 ## Air control is reduced for this long after a kick so you don't steer straight back.
 @export_range(0.0, 1.0, 0.01, "suffix:s") var wall_kick_control_lock := 0.22
@@ -157,9 +185,11 @@ extends Resource
 @export_range(0.0, 1.0, 0.01, "suffix:s") var wall_regrab_cooldown := 0.25
 
 @export_group("Ledge Grab")
+## Grab ledges automatically when jumping or falling next to them.
 @export var ledge_grab_enabled := true
 ## Ledge tops between these heights (above your feet) are grabbed and hung from.
 @export_range(0.0, 3.0, 0.05, "suffix:m") var ledge_min_height := 1.0
+## The highest ledge top (above your feet) you can reach.
 @export_range(0.0, 3.0, 0.05, "suffix:m") var ledge_max_height := 2.0
 ## Falling past a ledge that's below your hands but above your feet pulls you
 ## straight up onto it, instead of scraping down the wall.
@@ -168,31 +198,41 @@ extends Resource
 @export_range(0.5, 2.5, 0.01, "suffix:m") var ledge_hang_depth := 1.45
 ## Ledges are only grabbed when rising slower than this (or falling).
 @export_range(-10.0, 20.0, 0.1, "suffix:m/s") var ledge_grab_max_rise_speed := 2.0
+## Duration of climbing up onto a ledge.
 @export_range(0.05, 1.0, 0.01, "suffix:s") var ledge_climb_time := 0.3
 ## Jump while hanging to hop up and over the ledge.
 @export_range(0.5, 15.0, 0.05, "suffix:m") var ledge_jump_height := 2.3
 ## Inputs are ignored for this long after grabbing, to avoid accidental climbs/drops.
 @export_range(0.0, 1.0, 0.01, "suffix:s") var ledge_input_delay := 0.12
+## A ledge you drop from can't be grabbed again for this long.
 @export_range(0.0, 2.0, 0.01, "suffix:s") var ledge_regrab_cooldown := 0.35
 
 @export_group("Air Spin")
 ## Spin in the air once per jump for a little lift and extra control.
 @export_range(0.0, 10.0, 0.05, "suffix:m") var spin_height := 1.0
+## How long an air spin lasts.
 @export_range(0.05, 2.0, 0.01, "suffix:s") var spin_duration := 0.45
+## Multiplies gravity while falling during a spin.
 @export_range(0.05, 2.0, 0.05) var spin_gravity_scale := 0.6
+## Multiplies air control during a spin.
 @export_range(0.0, 3.0, 0.05) var spin_air_control := 1.3
 
 @export_group("Bonk")
 ## Diving head-first into a wall faster than this bonks you off it.
 @export_range(0.0, 30.0, 0.1, "suffix:m/s") var bonk_min_speed := 6.0
+## Speed you are knocked back off the wall.
 @export_range(0.0, 20.0, 0.1, "suffix:m/s") var bonk_knockback := 5.0
+## Upward speed of the knockback.
 @export_range(0.0, 20.0, 0.1, "suffix:m/s") var bonk_hop := 4.0
+## How long you are stunned after landing from a bonk.
 @export_range(0.0, 2.0, 0.01, "suffix:s") var bonk_stun_time := 0.35
 
 @export_group("Steep Slopes")
 ## Jump off a steep slope while sliding down it.
 @export_range(0.2, 10.0, 0.05, "suffix:m") var steep_jump_height := 1.8
+## Speed away from the slope when jumping off it.
 @export_range(0.0, 20.0, 0.1, "suffix:m/s") var steep_jump_speed := 6.0
+## How fast the stick can steer across a steep slope.
 @export_range(0.0, 720.0, 5.0, "suffix:°/s") var steep_slide_steering := 60.0
 
 
