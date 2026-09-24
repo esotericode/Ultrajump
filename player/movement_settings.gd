@@ -186,6 +186,33 @@ extends Resource
 ## The same wall can't be grabbed again for this long after leaving it.
 @export_range(0.0, 1.0, 0.01, "suffix:s") var wall_regrab_cooldown := 0.25
 
+@export_group("Attacks")
+## On the ground the attack button punches, punches again, then kicks. Running
+## at least this fast with the stick pushed all the way dives instead, like
+## Super Mario 64. Set it above the run speed to always punch on the ground.
+## (In the air, attack always dives.)
+@export_range(0.0, 40.0, 0.1, "suffix:m/s") var ground_dive_min_speed := 8.5
+## Forward lunge of each punch.
+@export_range(0.0, 20.0, 0.1, "suffix:m/s") var punch_lunge_speed := 3.0
+## Forward lunge of the kick that ends the combo.
+@export_range(0.0, 20.0, 0.1, "suffix:m/s") var kick_lunge_speed := 4.5
+## How long a punch lasts. Press attack again during it to chain the next hit.
+@export_range(0.05, 1.0, 0.01, "suffix:s") var punch_duration := 0.26
+## How long the kick lasts.
+@export_range(0.05, 1.0, 0.01, "suffix:s") var kick_duration := 0.4
+## The next hit of a combo can't start sooner than this into the current one.
+@export_range(0.0, 0.5, 0.01, "suffix:s") var combo_min_time := 0.12
+## How quickly you slow down while punching.
+@export_range(0.0, 100.0, 0.5, "suffix:m/s²") var punch_friction := 20.0
+## How far in front of you punches and kicks connect.
+@export_range(0.1, 3.0, 0.05, "suffix:m") var attack_reach := 0.75
+## Size of the punch and kick hit area.
+@export_range(0.1, 2.0, 0.05, "suffix:m") var attack_radius := 0.55
+## Attack during a crouch slide for a slide kick: a low, fast lunge along the ground.
+@export_range(0.0, 30.0, 0.1, "suffix:m/s") var slide_kick_speed := 9.0
+## Upward pop of the slide kick.
+@export_range(0.0, 10.0, 0.1, "suffix:m/s") var slide_kick_hop := 3.5
+
 @export_group("Ledge Grab")
 ## Grab ledges automatically when jumping or falling next to them.
 @export var ledge_grab_enabled := true

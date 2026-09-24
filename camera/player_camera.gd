@@ -94,6 +94,7 @@ func _ready() -> void:
 		target.view = self
 		target.ground_pound_impact.connect(add_trauma.bind(0.4))
 		target.bonked.connect(func(_normal: Vector3) -> void: add_trauma(0.3))
+		target.attack_landed.connect(func(_kind: StringName, _where: Vector3) -> void: add_trauma(0.12))
 		target.teleported.connect(snap_behind)
 		snap_behind.call_deferred()
 
@@ -195,15 +196,22 @@ func _follow(feet: Vector3, delta: float) -> void:
 	_focus.x = lerpf(_focus.x, feet.x, follow)
 	_focus.z = lerpf(_focus.z, feet.z, follow)
 
+	# The air band shrinks when the camera is pulled in, where the same height
+	# difference covers more of the screen.
+	var reach := clampf(_distance / distance, 0.2, 1.0)
+	var band_above := air_band_above * reach
+	var band_below := air_band_below * reach
 	var settled := target.is_on_floor() or target.state_name in [&"WallContact", &"LedgeHang", &"LedgeClimb"]
 	if settled:
-		_anchor_y = lerpf(_anchor_y, feet.y, _blend(vertical_follow_rate, delta))
-	elif feet.y > _anchor_y + air_band_above:
-		_anchor_y = lerpf(_anchor_y, feet.y - air_band_above, _blend(vertical_follow_rate, delta))
-	elif feet.y < _anchor_y - air_band_below:
-		_anchor_y = lerpf(_anchor_y, feet.y + air_band_below, _blend(vertical_follow_rate * 2.0, delta))
+		# Small steps ease in gently; big climbs (a ledge, a tall step) catch up fast.
+		var gap := absf(feet.y - _anchor_y)
+		_anchor_y = lerpf(_anchor_y, feet.y, _blend(vertical_follow_rate * (1.0 + gap), delta))
+	elif feet.y > _anchor_y + band_above:
+		_anchor_y = lerpf(_anchor_y, feet.y - band_above, _blend(vertical_follow_rate, delta))
+	elif feet.y < _anchor_y - band_below:
+		_anchor_y = lerpf(_anchor_y, feet.y + band_below, _blend(vertical_follow_rate * 2.0, delta))
 	# Never let the player leave the frame, however fast they move.
-	_anchor_y = clampf(_anchor_y, feet.y - air_band_above - 1.5, feet.y + air_band_below + 1.0)
+	_anchor_y = clampf(_anchor_y, feet.y - (air_band_above + 1.0) * reach, feet.y + (air_band_below + 1.0) * reach)
 	_focus.y = _anchor_y + focus_height
 
 	# The trailing focus point must never end up inside a wall the player just

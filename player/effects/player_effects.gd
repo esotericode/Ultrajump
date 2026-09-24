@@ -51,6 +51,7 @@ func _ready() -> void:
 	player.ground_pound_impact.connect(_on_ground_pound_impact)
 	player.wall_kicked.connect(_on_wall_kicked)
 	player.state_changed.connect(_on_state_changed)
+	player.attack_landed.connect(_on_attack_landed)
 	player.bonked.connect(_on_bonked)
 	player.ledge_grabbed.connect(_on_ledge_grabbed)
 	player.spun.connect(_on_spun)
@@ -102,6 +103,11 @@ func _on_state_changed(_previous: StringName, current: StringName) -> void:
 		_ring_burst(player.global_position - wall_normal * player.radius + Vector3.UP * 0.8, 6, 2.0, 0.2, wall_normal)
 
 
+func _on_attack_landed(_kind: StringName, where: Vector3) -> void:
+	_sparkle_burst(where, 10, 5.0, Color(1.0, 0.95, 0.6))
+	_rumble(0.35, 0.15, 0.08)
+
+
 func _on_bonked(_wall_normal: Vector3) -> void:
 	_sparkle_burst(player.global_position + Vector3.UP * 1.4, 8, 2.0, Color(1.0, 0.85, 0.2))
 	_rumble(0.5, 0.5, 0.18)
@@ -126,7 +132,7 @@ func _on_teleported() -> void:
 
 ## A flat ring of dust puffs spreading out from [param at] (perpendicular to [param axis]).
 func _ring_burst(at: Vector3, amount: int, speed: float, size: float, axis := Vector3.UP) -> void:
-	var burst := _one_shot(at, amount, 0.5, _dust_material)
+	var burst := _one_shot(amount, 0.5, _dust_material)
 	# Particles spread in the emitter's local XZ plane; turn local Y to face the axis.
 	burst.direction = Vector3.RIGHT
 	burst.spread = 180.0
@@ -143,11 +149,12 @@ func _ring_burst(at: Vector3, amount: int, speed: float, size: float, axis := Ve
 	burst.scale_amount_min = size * 0.7
 	burst.scale_amount_max = size * 1.2
 	burst.color = Color(0.93, 0.9, 0.85, 0.85)
+	_fire(burst, at)
 
 
 ## Bright specks flying out in all directions.
 func _sparkle_burst(at: Vector3, amount: int, speed: float, color := Color(1.0, 0.95, 0.7)) -> void:
-	var burst := _one_shot(at, amount, 0.45, _sparkle_material)
+	var burst := _one_shot(amount, 0.45, _sparkle_material)
 	burst.direction = Vector3.UP
 	burst.spread = 180.0
 	burst.initial_velocity_min = speed * 0.5
@@ -158,6 +165,7 @@ func _sparkle_burst(at: Vector3, amount: int, speed: float, color := Color(1.0, 
 	burst.scale_amount_min = 0.06
 	burst.scale_amount_max = 0.12
 	burst.color = color
+	_fire(burst, at)
 
 
 ## An expanding ring on the ground.
@@ -183,7 +191,8 @@ func _shockwave(at: Vector3) -> void:
 	tween.chain().tween_callback(ring.queue_free)
 
 
-func _one_shot(at: Vector3, amount: int, lifetime: float, material: Material) -> CPUParticles3D:
+## A one-shot burst, not yet in the level: configure it, then [method _fire] it.
+func _one_shot(amount: int, lifetime: float, material: Material) -> CPUParticles3D:
 	var particles := CPUParticles3D.new()
 	particles.one_shot = true
 	particles.explosiveness = 1.0
@@ -194,11 +203,17 @@ func _one_shot(at: Vector3, amount: int, lifetime: float, material: Material) ->
 	particles.scale_amount_curve = _shrink
 	particles.color_ramp = _fade_out
 	particles.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	_level().add_child(particles)
-	particles.global_position = at
-	particles.emitting = true
-	particles.finished.connect(particles.queue_free)
 	return particles
+
+
+## Adds a configured burst to the level at [param at] and fires it. Uses
+## restart(): a one-shot burst with explosiveness 1 that is started by setting
+## `emitting` shows nothing (Godot 4.7).
+func _fire(burst: CPUParticles3D, at: Vector3) -> void:
+	_level().add_child(burst)
+	burst.global_position = at
+	burst.finished.connect(burst.queue_free)
+	burst.restart()
 
 
 func _emitter(amount: int, lifetime: float, size: float, color: Color) -> CPUParticles3D:
@@ -231,6 +246,8 @@ func _particle_material(glowing: bool) -> StandardMaterial3D:
 	material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	material.vertex_color_use_as_albedo = true
+	# Particle colors are written as regular (sRGB) colors.
+	material.vertex_color_is_srgb = true
 	if glowing:
 		material.emission_enabled = true
 		material.emission = Color(1.0, 0.95, 0.8)

@@ -15,7 +15,7 @@ const HELP := """[b]CONTROLS[/b]   keyboard · gamepad
 [color=#ffd479]Mouse, arrows[/color] · R-stick   camera
 [color=#ffd479]Space[/color] · A   jump
 [color=#ffd479]Shift, C[/color] · LT, RT, B   crouch
-[color=#ffd479]E, left click[/color] · X   dive
+[color=#ffd479]E, left click[/color] · X   attack / dive
 [color=#ffd479]Q, right click[/color] · Y, RB   spin
 [color=#ffd479]Ctrl[/color]   walk      [color=#ffd479]R[/color] · Back   respawn
 [color=#ffd479]Tab, middle click[/color] · LB   recenter camera
@@ -26,15 +26,19 @@ const HELP := """[b]CONTROLS[/b]   keyboard · gamepad
 [color=#9fe870]Backflip[/color]  crouch, then jump
 [color=#9fe870]Long jump[/color]  run, crouch, jump
 [color=#9fe870]Side flip[/color]  reverse while running, jump
-[color=#9fe870]Dive → rollout[/color]  dive, jump as you land
+[color=#9fe870]Punch, punch, kick[/color]  attack on the ground
+[color=#9fe870]Slide kick[/color]  attack while crouch sliding
+[color=#9fe870]Dive → rollout[/color]  attack in the air (or
+     at full speed), jump as you land
 [color=#9fe870]Ground pound[/color]  crouch in the air
-     then jump (big jump) or dive (cancel)
-[color=#9fe870]Wall kick[/color]  jump into a wall, jump
+     then jump (big jump) or attack (dive)
+[color=#9fe870]Wall kick[/color]  run into a wall mid-air,
+     jump right as you hit it
 [color=#9fe870]Ledge grab[/color]  push in, jump, or pull away
 [color=#9fe870]Spin[/color]  in the air, once per jump
 
 [b]DEBUG[/b]  F1 help · F2 tuning · F3 slow-mo
-F4 trail · F5 readout · 1-9 teleport"""
+F4 trail · F5 readout · 1-0 teleport"""
 
 @export var player: Player
 @export var trail: TrajectoryTrail
@@ -47,12 +51,16 @@ var station_names: PackedStringArray = []:
 
 var _readout: Label
 var _history: Label
+var _status: Label
+var _clock: Label
+var _toast: Label
+var _toast_tween: Tween
 var _help: RichTextLabel
 var _help_panel: PanelContainer
 var _tuning: TuningPanel
 var _events: Array[String] = []
 var _time_scale_index := 0
-var _clock := 0.0
+var _elapsed := 0.0
 
 
 func _ready() -> void:
@@ -61,15 +69,37 @@ func _ready() -> void:
 	if player:
 		player.state_changed.connect(_on_state_changed)
 		_tuning.setup(player.settings)
+	GameState.coins_changed.connect(func(_total: int) -> void: _refresh_status())
+	GameState.star_collected.connect(func(_star: String, _collected: int, _total: int) -> void: _refresh_status())
+	GameState.message.connect(show_message)
+	_refresh_status.call_deferred()
 	_tuning.visible = false
 	if trail:
 		trail.visible = false
 
 
 func _process(delta: float) -> void:
-	_clock += delta / maxf(Engine.time_scale, 0.001)
+	_elapsed += delta / maxf(Engine.time_scale, 0.001)
 	if player:
 		_readout.text = _describe()
+	_clock.visible = not GameState.time_trial_course.is_empty()
+	if _clock.visible:
+		_clock.text = "%s   %.2f" % [GameState.time_trial_course, GameState.time_trial_time]
+
+
+## Pops up a short notification at the top of the screen.
+func show_message(text: String) -> void:
+	_toast.text = text
+	_toast.modulate.a = 1.0
+	if _toast_tween:
+		_toast_tween.kill()
+	_toast_tween = create_tween()
+	_toast_tween.tween_interval(2.2)
+	_toast_tween.tween_property(_toast, "modulate:a", 0.0, 0.6)
+
+
+func _refresh_status() -> void:
+	_status.text = "★ %d / %d      ● %d" % [GameState.collected_stars.size(), GameState.star_total, GameState.coins]
 
 
 ## True while the tuning panel is being used, so gameplay should ignore input.
@@ -125,7 +155,7 @@ func _describe() -> String:
 
 
 func _on_state_changed(_previous: StringName, current: StringName) -> void:
-	_events.push_front("%7.2f  %s" % [_clock, current])
+	_events.push_front("%7.2f  %s" % [_elapsed, current])
 	if _events.size() > HISTORY_LENGTH:
 		_events.resize(HISTORY_LENGTH)
 	_history.text = "\n".join(_events)
@@ -136,9 +166,17 @@ func _refresh_help() -> void:
 		return
 	var text := HELP
 	if not station_names.is_empty():
-		text += "\n\n[b]STATIONS[/b]"
-		for i in station_names.size():
-			text += "\n%d  %s" % [i + 1, station_names[i]]
+		# Two columns, numbered down the first and then the second.
+		text += "\n\n[b]STATIONS[/b]   PgUp / PgDn cycle\n[table=2]"
+		var rows := ceili(station_names.size() / 2.0)
+		for row in rows:
+			for column in 2:
+				var i := row + column * rows
+				var entry := ""
+				if i < station_names.size():
+					entry = "%s  %s" % [str((i + 1) % 10) if i < 10 else "·", station_names[i]]
+				text += "[cell]%s   [/cell]" % entry
+		text += "[/table]"
 	_help.text = text
 
 
@@ -179,10 +217,36 @@ func _build() -> void:
 	_help_panel.add_child(_help)
 	_refresh_help()
 
+	# Collectibles, the time trial clock and notifications, top center.
+	var top := VBoxContainer.new()
+	top.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP, Control.PRESET_MODE_KEEP_SIZE, 10)
+	top.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	top.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(top)
+	_status = _big_label(22, Color(1.0, 0.9, 0.45))
+	top.add_child(_status)
+	_clock = _big_label(26, Color(0.6, 1.0, 0.7))
+	_clock.visible = false
+	top.add_child(_clock)
+	_toast = _big_label(20, Color.WHITE)
+	_toast.modulate.a = 0.0
+	top.add_child(_toast)
+
 	_tuning = TuningPanel.new()
 	_tuning.set_anchors_and_offsets_preset(Control.PRESET_RIGHT_WIDE, Control.PRESET_MODE_MINSIZE, 12)
 	_tuning.grow_horizontal = Control.GROW_DIRECTION_BEGIN
 	add_child(_tuning)
+
+
+func _big_label(size: int, color: Color) -> Label:
+	var label := Label.new()
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.label_settings = LabelSettings.new()
+	label.label_settings.font_size = size
+	label.label_settings.font_color = color
+	label.label_settings.outline_size = 6
+	label.label_settings.outline_color = Color(0.05, 0.05, 0.1, 0.9)
+	return label
 
 
 func _panel(color: Color) -> PanelContainer:

@@ -27,6 +27,8 @@
 [ext_resource type="Script" path="res://player/states/ledge_hang.gd" id="s21_ledge_hang"]
 [ext_resource type="Script" path="res://player/states/ledge_climb.gd" id="s22_ledge_climb"]
 [ext_resource type="Script" path="res://player/states/ledge_jump.gd" id="s23_ledge_jump"]
+[ext_resource type="Script" path="res://player/states/punch.gd" id="s24_punch"]
+[ext_resource type="Script" path="res://player/states/slide_kick.gd" id="s25_slide_kick"]
 [ext_resource type="Script" path="res://player/model/player_model.gd" id="4_model"]
 [ext_resource type="Script" path="res://player/effects/player_effects.gd" id="5_effects"]
 [ext_resource type="Script" path="res://player/effects/player_audio.gd" id="6_audio"]
@@ -128,3 +130,9 @@ script = ExtResource("s22_ledge_climb")
 
 [node name="LedgeJump" type="Node" parent="StateMachine"]
 script = ExtResource("s23_ledge_jump")
+
+[node name="Punch" type="Node" parent="StateMachine"]
+script = ExtResource("s24_punch")
+
+[node name="SlideKick" type="Node" parent="StateMachine"]
+script = ExtResource("s25_slide_kick")

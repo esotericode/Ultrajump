@@ -63,6 +63,7 @@ var _facing_yaw := 0.0
 var _turn_rate := 0.0
 var _lean := 0.0
 var _roll := 0.0
+var _twist := 0.0
 var _pivot_height := PIVOT_HEIGHT
 var _crouch := 0.0
 var _hand_positions: Array[Vector3] = [HAND_REST * Vector3(-1, 1, 1), HAND_REST]
@@ -161,6 +162,7 @@ func _animate(delta: float) -> void:
 	# Default pose: standing, arms relaxed.
 	var lean := 0.0
 	var roll := 0.0
+	var twist := 0.0
 	var pivot := PIVOT_HEIGHT
 	var crouch := 0.0
 	var hands: Array[Vector3] = [_mirror(HAND_REST), HAND_REST]
@@ -189,6 +191,38 @@ func _animate(delta: float) -> void:
 			var bank := deg_to_rad(turn_bank_per_acceleration) * _turn_rate * speed
 			roll = clampf(bank, -deg_to_rad(max_turn_bank), deg_to_rad(max_turn_bank))
 			limb_rate = 30.0
+		&"Punch":
+			var step: int = (player.state_machine.current as Node).get(&"combo")
+			var duration := s.kick_duration if step == 3 else s.punch_duration
+			var t := clampf(player.state_machine.current.time_in_state / duration, 0.0, 1.0)
+			# Snap out fast, pull back a little slower.
+			var reach := smoothstep(0.0, 0.3, t) * (1.0 - smoothstep(0.55, 1.0, t))
+			limb_rate = 45.0
+			if step < 3:
+				# Jab with the left, cross with the right; the torso twists into it.
+				var side := -1.0 if step == 1 else 1.0
+				var fist := Vector3(0.12 * side, 0.95, -0.35).lerp(Vector3(0.04 * side, 0.95, -0.88), reach)
+				var guard := Vector3(-0.3 * side, 0.98, -0.25)
+				if step == 1:
+					hands = [fist, guard]
+				else:
+					hands = [guard, fist]
+				feet = [Vector3(-0.2, 0.09, -0.12), Vector3(0.2, 0.09, 0.12)]
+				twist = 0.45 * side * reach
+				lean = -0.1 * reach
+			else:
+				# Kick: the right foot swings up and out, the body leans back for balance.
+				feet = [Vector3(-0.16, 0.09, 0.08), Vector3(0.12, 0.12, -0.1).lerp(Vector3(0.08, 0.72, -0.85), reach)]
+				hands = [Vector3(-0.56, 1.02, 0.12), Vector3(0.5, 1.08, 0.18)]
+				lean = 0.3 * reach
+				twist = -0.2 * reach
+		&"SlideKick":
+			lean = 0.5
+			pivot = 0.62
+			hands = [Vector3(-0.42, 0.5, 0.3), Vector3(0.42, 0.5, 0.3)]
+			feet = [Vector3(-0.14, 0.22, -0.2), Vector3(0.15, 0.05, -0.6)]
+			squint = 0.4
+			limb_rate = 40.0
 		&"Skid":
 			lean = 0.4
 			crouch = 0.12
@@ -300,6 +334,7 @@ func _animate(delta: float) -> void:
 	# Blend toward the pose.
 	_lean = lerpf(_lean, lean, _blend(14.0, delta))
 	_roll = lerpf(_roll, roll, _blend(6.0, delta))
+	_twist = lerpf(_twist, twist, _blend(30.0, delta))
 	_pivot_height = lerpf(_pivot_height, pivot, _blend(16.0, delta))
 	_crouch = lerpf(_crouch, crouch, _blend(18.0, delta))
 	for i in 2:
@@ -316,7 +351,7 @@ func _apply(flip_angles: Vector3) -> void:
 	basis = Basis(Vector3.UP, _yaw)
 	position = Vector3(0.0, _vertical_offset, 0.0)
 	_pivot.position = Vector3(0.0, _pivot_height, 0.0)
-	_pivot.basis = Basis.from_euler(Vector3(_lean + flip_angles.x, flip_angles.y, _roll + flip_angles.z))
+	_pivot.basis = Basis.from_euler(Vector3(_lean + flip_angles.x, flip_angles.y + _twist, _roll + flip_angles.z))
 	var stretch := clampf((1.0 - _crouch) * (1.0 + _squash), 0.4, 1.6)
 	var widen := 1.0 / sqrt(stretch)
 	_body.scale = Vector3(widen, stretch, widen)
@@ -399,6 +434,9 @@ func _on_jumped(kind: StringName) -> void:
 			_start_flip(Vector3.AXIS_Y, TAU, 0.35, false)
 		&"long_jump":
 			_squash_velocity -= 1.5
+		&"bounce":
+			_squash_velocity += 2.0
+			_start_flip(Vector3.AXIS_Y, TAU, 0.6, false)
 
 
 func _on_state_changed(_previous: StringName, current: StringName) -> void:

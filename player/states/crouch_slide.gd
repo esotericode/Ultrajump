@@ -1,6 +1,6 @@
 extends GroundState
 ## Sliding on your feet after crouching at speed; slopes speed you up.
-## Jump to long jump.
+## Jump to long jump, attack to slide kick.
 
 
 func enter(_previous: StringName, _msg: Dictionary) -> void:
@@ -15,7 +15,7 @@ func physics_update(delta: float) -> void:
 		transition_to(&"LongJump" if fast_enough else &"Backflip")
 		return
 	if player.consume(&"attack"):
-		transition_to(&"Dive", {"from_ground": true})
+		transition_to(&"SlideKick")
 		return
 	player.slide_move(delta, settings.crouch_slide_friction, settings.slide_turn_speed)
 	player.move(true)

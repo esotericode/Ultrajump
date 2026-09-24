@@ -13,7 +13,7 @@ func physics_update(delta: float) -> void:
 		transition_to(&"Backflip")
 		return
 	if player.consume(&"attack"):
-		transition_to(&"Dive", {"from_ground": true})
+		attack()
 		return
 	if not player.input.held(&"crouch"):
 		transition_to(&"Run" if player.input.move.length_squared() > 0.0025 else &"Idle")

@@ -10,4 +10,6 @@ func enter(previous: StringName, msg: Dictionary) -> void:
 	air_control = settings.backflip_air_control
 	turn_to_velocity = false
 	apex_hang = true
+	# Backflipping with your back to a ledge lands on top of it.
+	keep_speed_on_walls = true
 	player.jumped.emit(&"backflip")

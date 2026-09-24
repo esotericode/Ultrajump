@@ -5,6 +5,8 @@ extends GroundState
 func enter(_previous: StringName, _msg: Dictionary) -> void:
 	player.velocity = Vector3.ZERO
 	player.ground_pound_impact.emit()
+	# The shockwave breaks things right next to the impact.
+	player.strike(&"ground_pound", 0.0, 1.3, 0.3, [])
 
 
 func physics_update(_delta: float) -> void:
@@ -12,7 +14,7 @@ func physics_update(_delta: float) -> void:
 		transition_to(&"GroundPoundJump")
 		return
 	if player.consume(&"attack"):
-		transition_to(&"Dive", {"from_ground": true})
+		attack()
 		return
 	player.velocity = Vector3.ZERO
 	player.move()

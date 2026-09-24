@@ -17,6 +17,9 @@ var apex_hang := false
 var air_control := 1.0
 ## Turn the character to face its direction of travel.
 var turn_to_velocity := true
+## Keep horizontal speed when brushing a wall instead of losing the part going
+## into it, so the move carries on over the top of a ledge it rises past.
+var keep_speed_on_walls := false
 var can_dive := true
 var can_ground_pound := true
 var can_spin := true
@@ -30,6 +33,7 @@ func enter(_previous: StringName, _msg: Dictionary) -> void:
 	apex_hang = false
 	air_control = 1.0
 	turn_to_velocity = true
+	keep_speed_on_walls = false
 	can_dive = true
 	can_ground_pound = true
 	can_spin = true
@@ -45,6 +49,9 @@ func physics_update(delta: float) -> void:
 	if turn_to_velocity:
 		player.face_velocity(delta, settings.air_turn_speed)
 	player.move()
+	if keep_speed_on_walls and player.is_on_wall():
+		var before := player.velocity_before_move
+		player.set_horizontal_velocity(Vector3(before.x, 0.0, before.z))
 	after_move()
 
 

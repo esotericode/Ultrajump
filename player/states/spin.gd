@@ -1,5 +1,8 @@
 extends AirState
 ## An air spin: once per jump, a little lift, a slower fall and extra control.
+## It also hits anything close around the player.
+
+var _hit: Array = []
 
 
 func enter(previous: StringName, msg: Dictionary) -> void:
@@ -9,12 +12,14 @@ func enter(previous: StringName, msg: Dictionary) -> void:
 	can_spin = false
 	var lift := settings.jump_velocity(settings.spin_height, settings.spin_gravity_scale, false)
 	player.velocity.y = maxf(player.velocity.y, lift)
+	_hit.clear()
 	player.spun.emit(true)
 
 
 func physics_update(delta: float) -> void:
 	# Only the descent is slowed, so spinning while rising fast isn't a free boost.
 	gravity_scale = settings.spin_gravity_scale if player.velocity.y <= 0.0 else 1.0
+	player.strike(&"spin", 0.0, 1.0, 0.8, _hit)
 	super(delta)
 	if is_active() and time_in_state >= settings.spin_duration:
 		transition_to(&"Fall")

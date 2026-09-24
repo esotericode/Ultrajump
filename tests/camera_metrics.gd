@@ -11,6 +11,8 @@ extends SceneTree
 ##   godot --headless --fixed-fps 60 -s res://tests/camera_metrics.gd
 ## Pass `-- --strict` to fail (non-zero exit code) when a comfort limit is exceeded.
 
+const TestBase := preload("res://tests/test_base.gd")
+
 ## Comfort limits checked with --strict.
 const LIMITS := {
 	"unrequested_yaw_deg": 5.0, # The camera shouldn't rotate on its own.
@@ -24,8 +26,18 @@ var main: Node
 var player: Player
 var rig: PlayerCamera
 var camera: Camera3D
+var probe: LateProbe
 var failures := 0
 var strict := false
+
+
+## Signals once per rendered frame, after every other node (the camera
+## included) has run [method Node._process], so samples see the final pose.
+class LateProbe extends Node:
+	signal frame_done
+
+	func _process(_delta: float) -> void:
+		frame_done.emit()
 
 
 func _initialize() -> void:
@@ -42,28 +54,32 @@ func _run() -> void:
 	rig = main.get_node("PlayerCamera")
 	camera = rig.camera
 	player.input.scripted = true
+	probe = LateProbe.new()
+	probe.process_priority = 1000
+	root.add_child(probe)
 
 	# Stick input is camera-relative, exactly like a player holding a direction.
-	await scenario("Hold sideways (circle strafe)", 0, 5.0, func(_t: float) -> Vector2: return Vector2(1.0, 0.0))
-	await scenario("Zigzag while running", 0, 5.0, func(t: float) -> Vector2: return Vector2(1.0 if fmod(t, 1.0) < 0.5 else -1.0, 1.0))
-	await scenario("Run, stop, turn back", 0, 5.0, func(t: float) -> Vector2:
+	await scenario("Hold sideways (circle strafe)", "Spawn", 5.0, func(_t: float) -> Vector2: return Vector2(1.0, 0.0))
+	await scenario("Zigzag while running", "Spawn", 5.0, func(t: float) -> Vector2: return Vector2(1.0 if fmod(t, 1.0) < 0.5 else -1.0, 1.0))
+	await scenario("Run, stop, turn back", "Spawn", 5.0, func(t: float) -> Vector2:
 		if t < 1.5:
 			return Vector2(0.0, 1.0)
 		if t < 2.2:
 			return Vector2.ZERO
 		return Vector2(0.0, -1.0))
-	await scenario("Run between the jump pillars", 1, 5.0, func(t: float) -> Vector2: return Vector2(0.7 if t > 1.0 else 0.0, 1.0))
-	await scenario("Circle the tower", 7, 7.0, func(_t: float) -> Vector2: return Vector2(1.0, 0.25))
-	await scenario("Long jumps and dives", 2, 5.0, func(_t: float) -> Vector2: return Vector2(0.0, 1.0), _long_jump_driver)
+	await scenario("Run between the jump pillars", "Jump heights", 5.0, func(t: float) -> Vector2: return Vector2(0.7 if t > 1.0 else 0.0, 1.0))
+	await scenario("Circle the tower", "Tower course", 7.0, func(_t: float) -> Vector2: return Vector2(1.0, 0.25))
+	await scenario("Long jumps and dives", "Long jump runway", 5.0, func(_t: float) -> Vector2: return Vector2(0.0, 1.0), _long_jump_driver)
 	print("\n%s" % ("All comfort limits met." if failures == 0 else "%d comfort limit(s) exceeded." % failures))
+	TestBase.silence(self)
 	quit(failures if strict else 0)
 
 
 ## Teleports to [param station], then holds the stick given by [param stick] (a
 ## function of time) for [param duration] seconds while recording the camera.
-func scenario(title: String, station: int, duration: float, stick: Callable, buttons := Callable()) -> void:
+func scenario(title: String, station: String, duration: float, stick: Callable, buttons := Callable()) -> void:
 	player.input.clear()
-	main.go_to_station(station)
+	main.go_to_station(main.find_station(station))
 	for i in 30:
 		await physics_frame
 	var stats := {
@@ -75,6 +91,7 @@ func scenario(title: String, station: int, duration: float, stick: Callable, but
 		"max_fov_rate_deg_s": 0.0,
 		"fov_range": Vector2(camera.fov, camera.fov),
 		"worst": "",
+		"worst_vertical": "",
 	}
 	var elapsed := 0.0
 	var frames := 0
@@ -86,7 +103,7 @@ func scenario(title: String, station: int, duration: float, stick: Callable, but
 		_drive(stick.call(elapsed))
 		if buttons.is_valid():
 			buttons.call(elapsed)
-		await process_frame
+		await probe.frame_done
 		var delta := 1.0 / 60.0
 		elapsed += delta
 		frames += 1
@@ -102,7 +119,9 @@ func scenario(title: String, station: int, duration: float, stick: Callable, but
 		if drift.x > stats.max_sideways_drift:
 			stats.max_sideways_drift = drift.x
 			stats.worst = "t=%.2fs state=%s arm=%.2fm speed=%.1f" % [elapsed, player.state_name, distance, player.horizontal_speed()]
-		stats.max_vertical_drift = maxf(stats.max_vertical_drift, drift.y)
+		if drift.y > stats.max_vertical_drift:
+			stats.max_vertical_drift = drift.y
+			stats.worst_vertical = "t=%.2fs state=%s arm=%.2fm y=%.2f vy=%.1f" % [elapsed, player.state_name, distance, player.global_position.y, player.velocity.y]
 		stats.mean_sideways_drift += drift.x
 		stats.max_fov_rate_deg_s = maxf(stats.max_fov_rate_deg_s, absf(camera.fov - last_fov) / delta)
 		last_fov = camera.fov
@@ -154,3 +173,4 @@ func _report(title: String, stats: Dictionary) -> void:
 		print("  %-22s %8.2f%s" % [key, value, "   <-- over %.2f" % limit if over else ""])
 	print("  %-22s %8.1f .. %.1f" % ["fov_range", stats.fov_range.x, stats.fov_range.y])
 	print("  worst sideways drift at %s" % stats.worst)
+	print("  worst vertical drift at %s" % stats.worst_vertical)

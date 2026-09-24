@@ -17,16 +17,18 @@ func enter(previous: StringName, msg: Dictionary) -> void:
 	chain = msg.get("chain", 1)
 	kind = msg.get("kind", CHAIN_KINDS[clampi(chain, 1, 3) - 1])
 	var height: float = msg.get("height", _chain_height())
+	# Launches (bounce pads) always reach the same height, whatever the button does.
+	var fixed_height: bool = msg.get("fixed_height", false)
 	player.jump_chain = chain
-	player.velocity.y = settings.jump_velocity(height)
+	player.velocity.y = settings.jump_velocity(height, 1.0, not fixed_height)
 	if msg.has("horizontal"):
 		var launch: Vector3 = msg.horizontal
 		player.set_horizontal_velocity(launch)
 		if launch.length_squared() > 0.01:
 			player.facing = Vector3(launch.x, 0.0, launch.z).normalized()
 	# The triple jump always goes full height; the others respond to how long jump is held.
-	variable_height = chain != 3
-	apex_hang = true
+	variable_height = chain != 3 and not fixed_height
+	apex_hang = not fixed_height
 	player.jumped.emit(kind)
 
 

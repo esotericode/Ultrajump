@@ -1,4 +1,4 @@
-extends SceneTree
+extends "res://tests/test_base.gd"
 ## Headless movement regression tests.
 ##
 ## Builds a small arena in code, drives the player with scripted input and
@@ -10,34 +10,12 @@ extends SceneTree
 ##   godot --headless --fixed-fps 120 -s res://tests/movement_tests.gd
 ## The exit code is the number of failed checks.
 
-const PLAYER_SCENE := preload("res://player/player.tscn")
-const TICK := 1.0 / 120.0
-
-var player: Player
-var s: MovementSettings
 var elevator: MovingPlatform
 var shuttle: MovingPlatform
-var history: Array[StringName] = []
-var steps := 0
-var checks := 0
-var failures := 0
-var _current_test := ""
 
 
-func _initialize() -> void:
-	Engine.physics_ticks_per_second = 120
-	_build_arena()
-	player = PLAYER_SCENE.instantiate()
-	root.add_child(player)
-	player.input.scripted = true
-	s = player.settings
-	player.state_changed.connect(func(_from: StringName, to: StringName) -> void: history.append(to))
-	player.stepped.connect(func(_height: float) -> void: steps += 1)
-	_run_all.call_deferred()
-
-
-func _run_all() -> void:
-	var tests: Array[Callable] = [
+func get_tests() -> Array[Callable]:
+	return [
 		test_settle_on_ground,
 		test_run_speed,
 		test_single_jump_height,
@@ -73,34 +51,32 @@ func _run_all() -> void:
 		test_long_jump_chain,
 		test_steep_slope_jump,
 		test_belly_slide_off_ledge_rollout,
-		test_skid_dive,
+		test_skid_punch,
+		test_punch_combo,
+		test_combo_restarts_after_a_pause,
+		test_sprint_dives_instead,
+		test_slide_kick,
+		test_attacks_hit_targets,
 		test_slow_motion_jump_height,
 	]
-	for test in tests:
-		_current_test = test.get_method()
-		var failures_before := failures
-		await test.call()
-		print("%s %s" % ["PASS" if failures == failures_before else "FAIL", _current_test])
-	print("\n%d checks, %d failed" % [checks, failures])
-	quit(failures)
 
 
 # --- Arena ---------------------------------------------------------------------
 
-func _build_arena() -> void:
-	_box(Vector3(0, -0.5, 0), Vector3(400, 1, 400)) # Floor
-	_box(Vector3(30, 10, 0), Vector3(2, 20, 40)) # Wall, face at x = 29
-	_box(Vector3(-33, 10, 0), Vector3(1, 20, 10)) # Shaft: faces at x = -32.5 ...
-	_box(Vector3(-27.5, 10, 0), Vector3(1, 20, 10)) # ... and x = -28
-	_box(Vector3(0, 1.6, -40), Vector3(8, 3.2, 6)) # Ledge, top 3.2, face at z = -37
-	_box(Vector3(20, 1.25, -40), Vector3(8, 2.5, 6)) # Low ledge, top 2.5, face at z = -37
-	_box(Vector3(0, 1, 60), Vector3(10, 2, 10)) # Platform, top 2, edge at z = 55
+func build_arena() -> void:
+	box(Vector3(0, -0.5, 0), Vector3(400, 1, 400)) # Floor
+	box(Vector3(30, 10, 0), Vector3(2, 20, 40)) # Wall, face at x = 29
+	box(Vector3(-33, 10, 0), Vector3(1, 20, 10)) # Shaft: faces at x = -32.5 ...
+	box(Vector3(-27.5, 10, 0), Vector3(1, 20, 10)) # ... and x = -28
+	box(Vector3(0, 1.6, -40), Vector3(8, 3.2, 6)) # Ledge, top 3.2, face at z = -37
+	box(Vector3(20, 1.25, -40), Vector3(8, 2.5, 6)) # Low ledge, top 2.5, face at z = -37
+	box(Vector3(0, 1, 60), Vector3(10, 2, 10)) # Platform, top 2, edge at z = 55
 	for i in 8: # Stairs rising toward -Z, 0.25 m steps
 		var step_height := (i + 1) * 0.25
-		_box(Vector3(60, step_height / 2.0, -10.25 - i * 0.5), Vector3(4, step_height, 0.5))
-	_box(Vector3(60, 1.0, -16.0 - 1.0), Vector3(4, 2.0, 2.0)) # Landing at the top of the stairs
-	_box(Vector3(80, 2, 40), Vector3(6, 0.5, 14), Vector3(-25, 0, 0)) # 25 degree ramp rising toward +Z
-	_box(Vector3(-60, 3, -40), Vector3(10, 0.5, 12), Vector3(60, 0, 0)) # 60 degree slope, downhill toward +Z
+		box(Vector3(60, step_height / 2.0, -10.25 - i * 0.5), Vector3(4, step_height, 0.5))
+	box(Vector3(60, 1.0, -16.0 - 1.0), Vector3(4, 2.0, 2.0)) # Landing at the top of the stairs
+	box(Vector3(80, 2, 40), Vector3(6, 0.5, 14), Vector3(-25, 0, 0)) # 25 degree ramp rising toward +Z
+	box(Vector3(-60, 3, -40), Vector3(10, 0.5, 12), Vector3(60, 0, 0)) # 60 degree slope, downhill toward +Z
 	elevator = _platform(Vector3(-100, 0.25, -100), Vector3(0, 5, 0)) # Rises 5 m
 	shuttle = _platform(Vector3(-100, 0.25, -60), Vector3(8, 0, 0)) # Slides 8 m along +X
 
@@ -115,102 +91,6 @@ func _platform(position: Vector3, travel: Vector3) -> MovingPlatform:
 	platform.position = position
 	root.add_child(platform)
 	return platform
-
-
-func _box(position: Vector3, size: Vector3, rotation_degrees := Vector3.ZERO) -> void:
-	var body := StaticBody3D.new()
-	var shape := CollisionShape3D.new()
-	var box := BoxShape3D.new()
-	box.size = size
-	shape.shape = box
-	body.add_child(shape)
-	body.position = position
-	body.rotation_degrees = rotation_degrees
-	root.add_child(body)
-
-
-# --- Helpers ---------------------------------------------------------------------
-
-func frames(count: int) -> void:
-	for i in count:
-		await physics_frame
-
-
-func seconds(time: float) -> void:
-	await frames(roundi(time / TICK))
-
-
-## Teleports the player, clears input and lets it settle on the ground.
-func place(position: Vector3, facing := Vector3.FORWARD) -> void:
-	player.input.clear()
-	player.teleport(Transform3D(Basis.looking_at(facing), position))
-	await frames(10)
-	history.clear()
-	steps = 0
-
-
-func tap(action: StringName) -> void:
-	player.input.press(action)
-	await frames(1)
-	player.input.release(action)
-
-
-## Waits until [param condition] is true, for at most [param timeout] seconds.
-func wait_for(condition: Callable, timeout := 3.0) -> bool:
-	var elapsed := 0.0
-	while elapsed < timeout:
-		if condition.call():
-			return true
-		await frames(1)
-		elapsed += TICK
-	return condition.call()
-
-
-func wait_for_state(state: StringName, timeout := 3.0) -> bool:
-	return await wait_for(func() -> bool: return player.state_name == state, timeout)
-
-
-func grounded() -> bool:
-	return player.is_on_floor()
-
-
-## Follows the player through the air until it lands. Returns the peak height
-## gained, the horizontal distance covered and the displacement, measured from
-## [param start] (defaults to where the player is now).
-func fly(timeout := 4.0, start := Vector3.INF) -> Dictionary:
-	if start == Vector3.INF:
-		start = player.global_position
-	var peak := start.y
-	var elapsed := 0.0
-	await frames(2)
-	while elapsed < timeout:
-		peak = maxf(peak, player.global_position.y)
-		if player.is_on_floor() or player.state_name in [&"LedgeHang", &"WallContact"]:
-			break
-		await frames(1)
-		elapsed += TICK
-	var offset := player.global_position - start
-	return {
-		"height": peak - start.y,
-		"distance": Vector2(offset.x, offset.z).length(),
-		"offset": offset,
-		"time": elapsed,
-	}
-
-
-func check(condition: bool, label: String) -> void:
-	checks += 1
-	if not condition:
-		failures += 1
-		printerr("  FAILED [%s] %s (state %s, history %s)" % [_current_test, label, player.state_name, history])
-
-
-func check_near(value: float, expected: float, tolerance: float, label: String) -> void:
-	check(absf(value - expected) <= tolerance, "%s: got %.3f, expected %.3f ± %.3f" % [label, value, expected, tolerance])
-
-
-func report(label: String, value: float, unit := "m") -> void:
-	print("    %s = %.2f %s" % [label, value, unit])
 
 
 # --- Tests -----------------------------------------------------------------------
@@ -710,9 +590,9 @@ func test_steep_slope_jump() -> void:
 
 
 func test_belly_slide_off_ledge_rollout() -> void:
-	await place(Vector3(0, 2.2, 61))
+	await place(Vector3(0, 2.2, 64.5))
 	player.input.move = Vector3.FORWARD
-	await seconds(0.1)
+	await seconds(0.3)
 	await tap(&"attack")
 	player.input.move = Vector3.ZERO
 	check(await wait_for_state(&"BellySlide", 1.5), "belly slide on the platform")
@@ -722,7 +602,7 @@ func test_belly_slide_off_ledge_rollout() -> void:
 	await wait_for(grounded, 3.0)
 
 
-func test_skid_dive() -> void:
+func test_skid_punch() -> void:
 	await place(Vector3(-100, 0, 100))
 	player.input.move = Vector3.FORWARD
 	await seconds(1.0)
@@ -730,11 +610,10 @@ func test_skid_dive() -> void:
 	await frames(1)
 	check(player.state_name == &"Skid", "skidding")
 	await tap(&"attack")
-	check(player.state_name == &"Dive", "dives out of the skid")
-	check(player.velocity.z > s.dive_min_speed - 0.1, "dives the new way")
+	check(player.state_name == &"Punch", "punches out of the skid")
+	check(player.facing.dot(Vector3.BACK) > 0.9, "punches the new way")
 	player.input.move = Vector3.ZERO
-	await wait_for_state(&"BellySlide", 2.0)
-	await seconds(1.0)
+	await seconds(0.8)
 
 
 func test_slow_motion_jump_height() -> void:
@@ -746,3 +625,97 @@ func test_slow_motion_jump_height() -> void:
 	Engine.time_scale = 1.0
 	report("single jump height at 0.25x", flight.height)
 	check_near(flight.height, s.single_jump_height, s.single_jump_height * 0.02, "slow motion doesn't change jump height")
+
+
+# --- Attacks -----------------------------------------------------------------------
+
+func test_punch_combo() -> void:
+	await place(Vector3(100, 0, -60))
+	var combo: Array[int] = []
+	for i in 3:
+		await tap(&"attack")
+		await wait_for(func() -> bool: return player.state_name == &"Punch" and player.state_machine.current.get(&"combo") == i + 1, 0.5)
+		combo.append(player.state_machine.current.get(&"combo"))
+		await seconds(s.combo_min_time)
+	check(combo == [1, 2, 3], "punch, punch, kick (got %s)" % [combo])
+	check(await wait_for_state(&"Idle", 1.0), "back to standing after the kick")
+	check(player.horizontal_speed() < 0.1, "punches don't keep you sliding")
+
+
+func test_combo_restarts_after_a_pause() -> void:
+	await place(Vector3(100, 0, -60))
+	await tap(&"attack")
+	await wait_for_state(&"Idle", 1.0)
+	await seconds(0.4)
+	await tap(&"attack")
+	check(player.state_name == &"Punch" and player.state_machine.current.get(&"combo") == 1, "starts over with the first punch")
+	await wait_for_state(&"Idle", 1.0)
+
+
+func test_sprint_dives_instead() -> void:
+	await place(Vector3(100, 0, -60))
+	player.input.move = Vector3.FORWARD * 0.5
+	await seconds(0.5)
+	await tap(&"attack")
+	check(player.state_name == &"Punch", "a punch while walking")
+	player.input.move = Vector3.FORWARD
+	await wait_for(func() -> bool: return player.state_name == &"Run" and player.horizontal_speed() >= s.ground_dive_min_speed, 2.0)
+	await tap(&"attack")
+	check(player.state_name == &"Dive", "a dive when running flat out")
+	player.input.move = Vector3.ZERO
+	await wait_for_state(&"BellySlide", 2.0)
+	await seconds(1.0)
+
+
+func test_slide_kick() -> void:
+	await place(Vector3(100, 0, -60))
+	player.input.move = Vector3.FORWARD
+	await seconds(0.5)
+	player.input.press(&"crouch")
+	await frames(2)
+	check(player.state_name == &"CrouchSlide", "crouch sliding")
+	await tap(&"attack")
+	check(player.state_name == &"SlideKick", "slide kick")
+	check(player.horizontal_speed() >= s.slide_kick_speed - 0.01, "bursts forward")
+	check(await wait_for_state(&"CrouchSlide", 1.5), "lands back in a slide (crouch held)")
+	player.input.release(&"crouch")
+	player.input.move = Vector3.ZERO
+	await seconds(1.0)
+
+
+## A box on the Hittable layer that counts how often it gets hit.
+func _target(position: Vector3) -> StaticBody3D:
+	var script := GDScript.new()
+	script.source_code = "extends StaticBody3D\nvar hits: Array[StringName] = []\nfunc take_hit(hit: Dictionary) -> void:\n\thits.append(hit.kind)\n"
+	script.reload()
+	var target := StaticBody3D.new()
+	target.set_script(script)
+	target.collision_layer = Player.HITTABLE_LAYER
+	var shape := CollisionShape3D.new()
+	var box_shape := BoxShape3D.new()
+	box_shape.size = Vector3(0.6, 0.6, 0.6)
+	shape.shape = box_shape
+	target.add_child(shape)
+	target.position = position
+	root.add_child(target)
+	return target
+
+
+func test_attacks_hit_targets() -> void:
+	await place(Vector3(100, 0, -40))
+	var target := _target(Vector3(100, 0.9, -41.1))
+	await frames(2)
+	for i in 3:
+		await tap(&"attack")
+		await seconds(s.combo_min_time + 0.02)
+	await wait_for_state(&"Idle", 1.0)
+	var hits: Array = target.get(&"hits")
+	check(hits == [&"punch_1", &"punch_2", &"kick"], "each hit of the combo connects once (got %s)" % [hits])
+	target.free()
+	# Ground pound onto something breakable from above.
+	var below := _target(Vector3(100, 3.0, -30))
+	await place(Vector3(100, 5.0, -30))
+	await tap(&"crouch")
+	check(await wait_for(func() -> bool: return (below.get(&"hits") as Array).has(&"ground_pound"), 2.0), "a ground pound smashes what's below")
+	below.free()
+	await wait_for(grounded, 2.0)

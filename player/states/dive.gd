@@ -4,6 +4,7 @@ extends AirState
 ## head-first into a wall at speed bonks you off it.
 
 var _slid_off := false
+var _hit: Array = []
 
 
 func enter(previous: StringName, msg: Dictionary) -> void:
@@ -17,6 +18,7 @@ func enter(previous: StringName, msg: Dictionary) -> void:
 	can_wall_kick = false
 	can_grab_ledge = false
 	_slid_off = msg.get("slide_off", false)
+	_hit.clear()
 	if _slid_off:
 		return # Slid off an edge during a belly slide: no boost, just keep the pose.
 
@@ -36,6 +38,7 @@ func physics_update(delta: float) -> void:
 	if _slid_off and time_in_state < settings.coyote_time and player.consume(&"jump"):
 		transition_to(&"Rollout")
 		return
+	player.strike(&"dive", 0.6, 0.6, 0.5, _hit)
 	player.apply_gravity(delta, gravity_scale)
 	var velocity := player.horizontal_velocity()
 	var input_dir := player.input.move

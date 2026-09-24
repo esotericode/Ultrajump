@@ -22,7 +22,7 @@ func physics_update(delta: float) -> void:
 	if player.consume(&"attack"):
 		player.facing = turn_direction
 		player.set_horizontal_velocity(Vector3.ZERO)
-		transition_to(&"Dive", {"from_ground": true})
+		transition_to(&"Punch", {"combo": 1})
 		return
 	if input_dir.length() > 0.3 and rad_to_deg(player.facing.angle_to(input_dir)) < 90.0:
 		transition_to(&"Run") # Changed our mind: keep running forward.

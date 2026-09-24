@@ -22,13 +22,20 @@ signal ground_pound_impact
 signal wall_kicked(wall_normal: Vector3)
 signal bonked(wall_normal: Vector3)
 signal ledge_grabbed
-## An air spin started ([param in_air] true) or a cosmetic ground twirl ([param in_air] false).
+## An air spin started ([param in_air] true) or a ground spin attack ([param in_air] false).
 signal spun(in_air: bool)
+## A punch, kick or slide kick started. Kinds: punch_1, punch_2, kick, slide_kick.
+signal attacked(kind: StringName)
 @warning_ignore_restore("unused_signal")
+## An attack connected with something hittable at [param where].
+signal attack_landed(kind: StringName, where: Vector3)
 ## Moved instantly (respawn / debug teleport); visuals should snap, not blend.
 signal teleported
 ## Popped up or down a step by [param height] meters while walking; visuals can smooth it out.
 signal stepped(height: float)
+
+## Physics layer that punchable / breakable things live on (layer 3, "Hittable").
+const HITTABLE_LAYER := 1 << 2
 
 @export var settings: MovementSettings
 ## Node whose orientation makes stick input camera-relative (normally the camera).
@@ -48,6 +55,9 @@ var velocity_before_move := Vector3.ZERO
 var moved_this_tick := false
 ## Blocks ledge grabs while positive (after dropping from a ledge, etc).
 var ledge_cooldown := 0.0
+## Step of the last punch / kick combo hit (see [method next_combo_step]).
+var combo_step := 0
+var time_since_attack := INF
 ## Collision cylinder dimensions, read from the collision shape.
 var radius := 0.35
 var height := 1.5
@@ -65,6 +75,7 @@ var _press_ages: Dictionary[StringName, float] = {}
 var _wall_cooldown := 0.0
 var _wall_cooldown_normal := Vector3.ZERO
 var _missed_walls: Array[Vector3] = []
+var _strike_shape := SphereShape3D.new()
 var _air_start := Vector3.ZERO
 var _air_peak := 0.0
 var _air_time := 0.0
@@ -101,6 +112,7 @@ func _physics_process(delta: float) -> void:
 	_wall_cooldown = maxf(_wall_cooldown - delta, 0.0)
 	ledge_cooldown = maxf(ledge_cooldown - delta, 0.0)
 	time_since_landing += delta
+	time_since_attack += delta
 	moved_this_tick = false
 	state_machine.physics_update(delta)
 	_track_air_stats(delta)
@@ -317,6 +329,52 @@ func next_chain_jump() -> int:
 	if jump_chain == 2 and speed >= s.triple_jump_min_speed:
 		return 3
 	return 1
+
+
+# --- Attacks ---------------------------------------------------------------------
+
+## Which hit of the punch-punch-kick combo the next attack press should be.
+## A press shortly after a hit ends still continues the combo.
+func next_combo_step() -> int:
+	if combo_step in [1, 2] and time_since_attack <= settings.input_buffer_time:
+		return combo_step + 1
+	return 1
+
+
+## Hits everything on the Hittable physics layer within [param hit_radius] of a
+## point [param reach] meters ahead of the player and [param above_feet] above
+## its feet. Targets implement [code]take_hit(hit: Dictionary)[/code]; each is
+## hit at most once per [param already_hit] list (keep one per attack).
+## Returns how many targets were hit.
+func strike(kind: StringName, reach: float, hit_radius: float, above_feet: float, already_hit: Array) -> int:
+	var center := global_position + facing * reach + Vector3.UP * above_feet
+	_strike_shape.radius = hit_radius
+	var query := PhysicsShapeQueryParameters3D.new()
+	query.shape = _strike_shape
+	query.transform = Transform3D(Basis.IDENTITY, center)
+	query.collision_mask = HITTABLE_LAYER
+	query.collide_with_areas = true
+	query.exclude = [get_rid()]
+	var count := 0
+	for result in get_world_3d().direct_space_state.intersect_shape(query, 16):
+		var target: Object = result.collider
+		if target == null or target in already_hit or not target.has_method(&"take_hit"):
+			continue
+		already_hit.append(target)
+		target.call(&"take_hit", {"attacker": self, "kind": kind, "direction": facing, "position": center})
+		count += 1
+	if count > 0:
+		attack_landed.emit(kind, center)
+	return count
+
+
+## Launches the player straight up to [param bounce_height] meters (bounce
+## pads). A ground pound onto the pad bounces higher.
+func bounce(bounce_height: float) -> void:
+	# The pad's trigger can fire just after the ground pound registers its landing.
+	if state_name in [&"GroundPound", &"GroundPoundLand"]:
+		bounce_height *= 1.4
+	state_machine.transition_to(&"Jump", {"chain": 0, "kind": &"bounce", "height": bounce_height, "fixed_height": true})
 
 
 # --- Walls and ledges ------------------------------------------------------------
