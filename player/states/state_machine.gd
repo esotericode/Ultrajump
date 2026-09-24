@@ -35,6 +35,8 @@ func physics_update(delta: float) -> void:
 			break
 
 
+## Switches to the state named [param state_name]. States shouldn't call this
+## from their own [method PlayerState.enter]; hand over on the next update instead.
 func transition_to(state_name: StringName, msg: Dictionary = {}) -> void:
 	var next: PlayerState = states.get(state_name)
 	if next == null:
@@ -45,4 +47,5 @@ func transition_to(state_name: StringName, msg: Dictionary = {}) -> void:
 	current = next
 	current.time_in_state = 0.0
 	current.enter(previous.name, msg)
-	player.state_changed.emit(previous.name, current.name)
+	if current == next:
+		player.state_changed.emit(previous.name, next.name)

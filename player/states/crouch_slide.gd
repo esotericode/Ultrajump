@@ -14,7 +14,7 @@ func physics_update(delta: float) -> void:
 		var fast_enough := player.horizontal_speed() >= settings.long_jump_min_speed
 		transition_to(&"LongJump" if fast_enough else &"Backflip")
 		return
-	if player.consume(&"dive"):
+	if player.consume(&"attack"):
 		transition_to(&"Dive", {"from_ground": true})
 		return
 	player.slide_move(delta, settings.crouch_slide_friction, settings.slide_turn_speed)

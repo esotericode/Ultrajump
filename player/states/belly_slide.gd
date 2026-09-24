@@ -10,7 +10,7 @@ func enter(_previous: StringName, _msg: Dictionary) -> void:
 
 
 func physics_update(delta: float) -> void:
-	if player.consume(&"jump") or player.consume(&"dive"):
+	if player.consume(&"jump") or player.consume(&"attack"):
 		transition_to(&"Rollout")
 		return
 	player.slide_move(delta, settings.belly_slide_friction, settings.belly_slide_turn_speed)

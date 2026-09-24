@@ -12,7 +12,7 @@ func physics_update(delta: float) -> void:
 	if player.consume(&"jump"):
 		transition_to(&"Backflip")
 		return
-	if player.consume(&"dive"):
+	if player.consume(&"attack"):
 		transition_to(&"Dive", {"from_ground": true})
 		return
 	if not player.input.held(&"crouch"):

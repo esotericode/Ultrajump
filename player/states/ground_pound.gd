@@ -13,7 +13,7 @@ func enter(previous: StringName, msg: Dictionary) -> void:
 
 
 func physics_update(_delta: float) -> void:
-	if time_in_state >= settings.ground_pound_dive_delay and player.consume(&"dive"):
+	if time_in_state >= settings.ground_pound_dive_delay and player.consume(&"attack"):
 		transition_to(&"Dive")
 		return
 	if not dropping and time_in_state >= settings.ground_pound_hang_time:

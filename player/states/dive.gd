@@ -14,7 +14,7 @@ func enter(previous: StringName, msg: Dictionary) -> void:
 	can_dive = false
 	can_ground_pound = false
 	can_spin = false
-	can_wall_slide = false
+	can_wall_kick = false
 	can_grab_ledge = false
 	_slid_off = msg.get("slide_off", false)
 	if _slid_off:

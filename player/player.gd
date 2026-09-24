@@ -61,9 +61,10 @@ var state_name: StringName:
 	get:
 		return state_machine.current.name if state_machine and state_machine.current else &""
 
-var _buffers: Dictionary[StringName, float] = {}
+var _press_ages: Dictionary[StringName, float] = {}
 var _wall_cooldown := 0.0
 var _wall_cooldown_normal := Vector3.ZERO
+var _missed_walls: Array[Vector3] = []
 var _air_start := Vector3.ZERO
 var _air_peak := 0.0
 var _air_time := 0.0
@@ -77,7 +78,7 @@ func _ready() -> void:
 	if settings == null:
 		settings = MovementSettings.new()
 	for action in PlayerInput.ACTIONS:
-		_buffers[action] = 0.0
+		_press_ages[action] = INF
 	var cylinder := collision_shape.shape as CylinderShape3D
 	if cylinder:
 		radius = cylinder.radius
@@ -108,30 +109,30 @@ func _physics_process(delta: float) -> void:
 
 # --- Input buffering ---------------------------------------------------------
 
-## Uses up a buffered press of [param action]. Presses stay buffered for
-## [member MovementSettings.input_buffer_time], so a press slightly before
-## landing or touching a wall still counts.
-func consume(action: StringName) -> bool:
-	if _buffers.get(action, 0.0) > 0.0:
-		_buffers[action] = 0.0
+## Uses up a recent press of [param action]. Presses stay usable for
+## [member MovementSettings.input_buffer_time] (or [param max_age] seconds, if
+## given), so a press slightly before landing still counts.
+func consume(action: StringName, max_age := -1.0) -> bool:
+	var window := settings.input_buffer_time if max_age < 0.0 else max_age
+	if _press_ages.get(action, INF) <= window:
+		_press_ages[action] = INF
 		return true
 	return false
 
 
 func is_buffered(action: StringName) -> bool:
-	return _buffers.get(action, 0.0) > 0.0
+	return _press_ages.get(action, INF) <= settings.input_buffer_time
 
 
 func clear_buffer(action: StringName) -> void:
-	_buffers[action] = 0.0
+	_press_ages[action] = INF
 
 
 func _update_buffers(delta: float) -> void:
 	for action in PlayerInput.ACTIONS:
-		_buffers[action] = maxf(_buffers[action] - delta, 0.0)
+		_press_ages[action] += delta
 		if input.pressed(action):
-			# Always valid for at least this tick, even with a zero buffer time.
-			_buffers[action] = settings.input_buffer_time + 0.0001
+			_press_ages[action] = 0.0
 
 
 # --- Velocity helpers ---------------------------------------------------------
@@ -299,6 +300,7 @@ func land(keep_chain := false) -> void:
 	if not keep_chain:
 		jump_chain = 0
 	air_spin_available = true
+	_missed_walls.clear()
 	# Crouch / spin presses made in the air shouldn't leak into the next move.
 	clear_buffer(&"crouch")
 	clear_buffer(&"spin")
@@ -319,16 +321,31 @@ func next_chain_jump() -> int:
 
 # --- Walls and ledges ------------------------------------------------------------
 
-func can_wall_slide_on(wall_normal: Vector3) -> bool:
+## Whether hitting the wall facing [param wall_normal] counts as a wall contact
+## (a chance to wall kick).
+func can_touch_wall(wall_normal: Vector3) -> bool:
 	if _wall_cooldown > 0.0 and wall_normal.dot(_wall_cooldown_normal) > 0.9:
 		return false
-	return height_above_ground(settings.wall_slide_min_height + 0.1) >= settings.wall_slide_min_height
+	for missed in _missed_walls:
+		if wall_normal.dot(missed) > 0.9:
+			return false
+	return height_above_ground(settings.wall_contact_min_height + 0.1) >= settings.wall_contact_min_height
 
 
-## Prevents re-grabbing the wall with [param wall_normal] for a moment.
+## Ignores the wall facing [param wall_normal] for a moment (just kicked off it).
 func start_wall_cooldown(wall_normal: Vector3) -> void:
 	_wall_cooldown = settings.wall_regrab_cooldown
 	_wall_cooldown_normal = wall_normal
+
+
+## The kick off this wall was missed: no more tries on it until landing or a
+## successful kick off another wall.
+func miss_wall(wall_normal: Vector3) -> void:
+	_missed_walls.append(wall_normal)
+
+
+func forgive_missed_walls() -> void:
+	_missed_walls.clear()
 
 
 ## Distance from the feet down to the ground, or [param max_distance] if further.

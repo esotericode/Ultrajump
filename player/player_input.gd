@@ -9,7 +9,7 @@ extends RefCounted
 ## and set [member move] yourself.
 
 ## Actions that can be buffered by the player (see [method Player.consume]).
-const ACTIONS: Array[StringName] = [&"jump", &"crouch", &"dive", &"spin"]
+const ACTIONS: Array[StringName] = [&"jump", &"crouch", &"attack", &"spin"]
 
 ## Desired horizontal movement in world space. Length is 0..1 (stick tilt).
 var move := Vector3.ZERO

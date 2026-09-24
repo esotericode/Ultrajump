@@ -19,7 +19,7 @@ var state_colors: Dictionary[StringName, Color] = {
 	&"Rollout": Color(1.0, 0.6, 0.7),
 	&"GroundPound": Color(0.2, 0.3, 1.0),
 	&"GroundPoundJump": Color(0.2, 0.9, 1.0),
-	&"WallSlide": Color(0.65, 0.45, 0.25),
+	&"WallContact": Color(0.65, 0.45, 0.25),
 	&"WallKick": Color(0.1, 0.8, 0.7),
 	&"Spin": Color(0.6, 0.85, 1.0),
 	&"Fall": Color(0.75, 0.75, 0.75),

@@ -11,7 +11,7 @@ func physics_update(_delta: float) -> void:
 	if player.consume(&"jump"):
 		transition_to(&"GroundPoundJump")
 		return
-	if player.consume(&"dive"):
+	if player.consume(&"attack"):
 		transition_to(&"Dive", {"from_ground": true})
 		return
 	player.velocity = Vector3.ZERO

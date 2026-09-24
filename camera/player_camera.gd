@@ -2,16 +2,18 @@ class_name PlayerCamera
 extends Node3D
 ## Third-person orbit camera tuned for 3D platforming.
 ##
+## Built to stay calm: it only rotates when you rotate it, and it never snaps.
 ## - Orbit with the mouse or right stick; tap recenter to swing behind the player.
-## - Follows tightly on the ground, but only lazily in the air: small hops
+## - Follows closely on the ground, but only lazily in the air: small hops
 ##   don't bob the view, so jump arcs read clearly. It catches up on landing,
 ##   or as soon as the player climbs or falls out of a comfortable band.
-## - Looks ahead along the direction of travel, widens the FOV at high speed,
-##   drifts behind the player while running (after a pause in manual control),
-##   shakes on big impacts, and pulls in instead of clipping through walls.
+## - Slides in (quickly, but never in a single frame) when a wall gets between
+##   it and the player, and eases back out once the view clears.
+## - Widens the FOV a little at very high speed and shakes on big impacts.
 ##
 ## This node is the camera's pose; the Camera3D child just renders it. It
 ## updates every rendered frame from the player's interpolated transform.
+## tests/camera_metrics.gd measures how much it moves on its own.
 
 @export var target: Player
 
@@ -28,38 +30,48 @@ extends Node3D
 @export_group("Follow")
 ## Height above the player's feet the camera looks at.
 @export var focus_height := 1.2
-@export var horizontal_follow_rate := 12.0
+## How tightly the camera keeps up horizontally. Higher keeps the player more centered.
+@export var horizontal_follow_rate := 16.0
 @export var vertical_follow_rate := 5.0
 ## While airborne, the view only rises once the player is this far above where they took off...
 @export var air_band_above := 2.2
 ## ...and follows right away once they drop this far below it.
 @export var air_band_below := 0.4
-## Seconds of travel the camera looks ahead.
-@export var look_ahead_time := 0.2
-@export var max_look_ahead := 2.0
 
 @export_group("Auto Align")
-## Drift behind the player while running, when the camera hasn't been touched for a moment.
-@export var auto_align := true
-@export var auto_align_delay := 1.2
-@export var auto_align_strength := 0.9
+## Swing behind the player while running, once the camera hasn't been touched
+## for [member auto_align_delay] seconds. Off by default: a camera that turns
+## by itself also turns the (camera-relative) controls under your thumb.
+@export var auto_align := false
+@export var auto_align_delay := 2.0
+@export var auto_align_strength := 0.6
+
+@export_group("Collision")
+@export_flags_3d_physics var collision_mask := 1
+@export var collision_radius := 0.2
+## The camera never gets closer to the focus point than this, even against a wall.
+@export var min_distance := 1.2
+## Top speed when sliding in because something is in the way.
+@export var pull_in_speed := 20.0
+## How quickly the camera eases back out once the view is clear...
+@export var push_out_rate := 2.5
+## ...after it has stayed clear for this long.
+@export var push_out_delay := 0.25
 
 @export_group("Feel")
 @export var base_fov := 70.0
-@export var speed_fov_bonus := 10.0
-## Horizontal speeds above this widen the FOV.
-@export var fov_speed_threshold := 11.0
-@export var max_shake_offset := 0.3
-@export var collision_radius := 0.25
-@export_flags_3d_physics var collision_mask := 1
+@export var speed_fov_bonus := 5.0
+## Horizontal speeds above this widen the FOV (running tops out at 10 m/s).
+@export var fov_speed_threshold := 12.0
+@export var max_shake_offset := 0.2
 
 var yaw := 0.0
 var pitch := 0.0
 
 var _focus := Vector3.ZERO
 var _anchor_y := 0.0
-var _look_ahead := Vector3.ZERO
 var _distance := 6.5
+var _clear_time := 0.0
 var _since_manual := 100.0
 var _recentering := false
 var _trauma := 0.0
@@ -80,8 +92,8 @@ func _ready() -> void:
 	camera.fov = base_fov
 	if target:
 		target.view = self
-		target.ground_pound_impact.connect(add_trauma.bind(0.45))
-		target.bonked.connect(func(_normal: Vector3) -> void: add_trauma(0.35))
+		target.ground_pound_impact.connect(add_trauma.bind(0.4))
+		target.bonked.connect(func(_normal: Vector3) -> void: add_trauma(0.3))
 		target.teleported.connect(snap_behind)
 		snap_behind.call_deferred()
 
@@ -115,10 +127,10 @@ func _process(delta: float) -> void:
 		_auto_align(delta)
 	pitch = clampf(pitch, deg_to_rad(min_pitch), deg_to_rad(max_pitch))
 
-	_follow(target.get_global_transform_interpolated().origin, delta)
+	_follow(_target_feet(), delta)
 	_place(delta)
 	var speed_boost := clampf((target.horizontal_speed() - fov_speed_threshold) / 8.0, 0.0, 1.0)
-	camera.fov = lerpf(camera.fov, base_fov + speed_fov_bonus * speed_boost, _blend(3.0, delta))
+	camera.fov = lerpf(camera.fov, base_fov + speed_fov_bonus * speed_boost, _blend(1.5, delta))
 
 
 ## Kicks off a camera shake; [param amount] 0..1 stacks up to 1.
@@ -135,10 +147,20 @@ func snap_behind() -> void:
 	var feet := target.global_position
 	_anchor_y = feet.y
 	_focus = feet + Vector3.UP * focus_height
-	_look_ahead = Vector3.ZERO
 	_distance = distance
+	_clear_time = 0.0
 	_recentering = false
 	_place(0.0)
+
+
+## The player's smoothly interpolated position. Right after a teleport the
+## interpolated value still points at the old spot until the next physics
+## tick, so fall back to the real position when the two are far apart.
+func _target_feet() -> Vector3:
+	var interpolated := target.get_global_transform_interpolated().origin
+	if interpolated.distance_squared_to(target.global_position) > 9.0:
+		return target.global_position
+	return interpolated
 
 
 func _manual_control() -> void:
@@ -167,15 +189,13 @@ func _auto_align(delta: float) -> void:
 
 
 func _follow(feet: Vector3, delta: float) -> void:
-	var travel := target.horizontal_velocity()
-	var ahead := (travel * look_ahead_time).limit_length(max_look_ahead)
-	_look_ahead = _look_ahead.lerp(ahead, _blend(3.0, delta))
-	var goal := feet + _look_ahead
-	var follow := _blend(horizontal_follow_rate, delta)
-	_focus.x = lerpf(_focus.x, goal.x, follow)
-	_focus.z = lerpf(_focus.z, goal.z, follow)
+	# Follow tighter when pulled in close, so the lag looks the same on screen.
+	var closeness := clampf(distance / maxf(_distance, 0.1), 1.0, 5.0)
+	var follow := _blend(horizontal_follow_rate * closeness, delta)
+	_focus.x = lerpf(_focus.x, feet.x, follow)
+	_focus.z = lerpf(_focus.z, feet.z, follow)
 
-	var settled := target.is_on_floor() or target.state_name in [&"WallSlide", &"LedgeHang", &"LedgeClimb"]
+	var settled := target.is_on_floor() or target.state_name in [&"WallContact", &"LedgeHang", &"LedgeClimb"]
 	if settled:
 		_anchor_y = lerpf(_anchor_y, feet.y, _blend(vertical_follow_rate, delta))
 	elif feet.y > _anchor_y + air_band_above:
@@ -186,13 +206,30 @@ func _follow(feet: Vector3, delta: float) -> void:
 	_anchor_y = clampf(_anchor_y, feet.y - air_band_above - 1.5, feet.y + air_band_below + 1.0)
 	_focus.y = _anchor_y + focus_height
 
+	# The trailing focus point must never end up inside a wall the player just
+	# ran past: the camera orbits it and casts from it.
+	var head := feet + Vector3.UP * focus_height
+	var hit := _ray(head, _focus)
+	if not hit.is_empty():
+		_focus = (hit.position as Vector3) + (head - _focus).normalized() * collision_radius
+
 
 func _place(delta: float) -> void:
 	var orbit := Basis.from_euler(Vector3(pitch, yaw, 0.0))
 	var wanted := _focus + orbit * Vector3(0.0, 0.0, distance)
-	var clear := _clear_distance(_focus, wanted)
-	# Pull in instantly so walls never block the view; ease back out.
-	_distance = clear if clear < _distance or delta == 0.0 else lerpf(_distance, clear, _blend(4.0, delta))
+	var clear := maxf(_clear_distance(_focus, wanted), min_distance)
+	if delta == 0.0:
+		_distance = clear
+	elif clear < _distance:
+		# Something is in the way: slide in fast, but never snap.
+		_distance = move_toward(_distance, clear, pull_in_speed * delta)
+		_clear_time = 0.0
+	else:
+		# Wait for the view to stay clear before easing back out, so the camera
+		# doesn't pump in and out while passing pillars.
+		_clear_time += delta
+		if _clear_time >= push_out_delay:
+			_distance = lerpf(_distance, clear, _blend(push_out_rate, delta))
 
 	_trauma = maxf(_trauma - delta * 1.6, 0.0)
 	var shake := _trauma * _trauma * max_shake_offset
@@ -210,6 +247,13 @@ func _clear_distance(from: Vector3, to: Vector3) -> float:
 	query.exclude = [target.get_rid()]
 	var result := get_world_3d().direct_space_state.cast_motion(query)
 	return distance * (result[0] if result.size() > 0 else 1.0)
+
+
+func _ray(from: Vector3, to: Vector3) -> Dictionary:
+	if from.is_equal_approx(to):
+		return {}
+	var query := PhysicsRayQueryParameters3D.create(from, to, collision_mask, [target.get_rid()])
+	return get_world_3d().direct_space_state.intersect_ray(query)
 
 
 static func _yaw_toward(direction: Vector3) -> float:

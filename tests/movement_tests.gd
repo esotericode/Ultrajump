@@ -54,7 +54,11 @@ func _run_all() -> void:
 		test_ground_pound_and_jump,
 		test_ground_pound_dive,
 		test_air_spin_once_per_jump,
-		test_wall_slide_and_kick,
+		test_wall_kick_in_window,
+		test_wall_kick_missed,
+		test_wall_kick_early_press,
+		test_wall_kick_too_early,
+		test_wall_contact_needs_speed,
 		test_wall_kick_shaft,
 		test_ledge_hang_and_climb,
 		test_ledge_jump,
@@ -67,7 +71,6 @@ func _run_all() -> void:
 		test_elevator,
 		test_shuttle_platform,
 		test_long_jump_chain,
-		test_wall_let_go,
 		test_steep_slope_jump,
 		test_belly_slide_off_ledge_rollout,
 		test_skid_dive,
@@ -182,7 +185,7 @@ func fly(timeout := 4.0, start := Vector3.INF) -> Dictionary:
 	await frames(2)
 	while elapsed < timeout:
 		peak = maxf(peak, player.global_position.y)
-		if player.is_on_floor() or player.state_name in [&"LedgeHang", &"WallSlide"]:
+		if player.is_on_floor() or player.state_name in [&"LedgeHang", &"WallContact"]:
 			break
 		await frames(1)
 		elapsed += TICK
@@ -373,7 +376,7 @@ func test_dive_belly_slide_rollout() -> void:
 	await place(Vector3(150, 0, -100))
 	player.input.move = Vector3.FORWARD
 	await seconds(0.6)
-	await tap(&"dive")
+	await tap(&"attack")
 	check(player.state_name == &"Dive", "ground dive")
 	check(player.horizontal_speed() >= s.dive_min_speed - 0.01, "dive boosts speed")
 	check(await wait_for_state(&"BellySlide", 2.0), "dive lands in a belly slide")
@@ -393,7 +396,7 @@ func test_air_dive_boost() -> void:
 	player.input.press(&"jump")
 	await seconds(0.15)
 	var before := player.horizontal_speed()
-	await tap(&"dive")
+	await tap(&"attack")
 	player.input.release(&"jump")
 	check(player.state_name == &"Dive", "air dive")
 	check(player.horizontal_speed() > before + 0.5, "air dive adds speed")
@@ -431,7 +434,7 @@ func test_ground_pound_dive() -> void:
 	await tap(&"crouch")
 	await seconds(0.12)
 	player.input.move = Vector3.LEFT
-	await tap(&"dive")
+	await tap(&"attack")
 	check(player.state_name == &"Dive", "dive out of a ground pound")
 	check(player.velocity.x < -s.dive_min_speed + 0.1, "dives toward the stick")
 	player.input.move = Vector3.ZERO
@@ -454,22 +457,86 @@ func test_air_spin_once_per_jump() -> void:
 	await fly()
 
 
-func test_wall_slide_and_kick() -> void:
-	await place(Vector3(26, 0, 0), Vector3.RIGHT)
-	player.input.move = Vector3.RIGHT
-	player.input.press(&"jump")
-	check(await wait_for_state(&"WallSlide", 1.5), "latches onto the wall")
+## Runs at the big wall (face at x = 29) and jumps into it. Returns whether
+## the wall was hit hard enough to open a wall kick window.
+func jump_into_wall() -> bool:
+	await run_and_jump_at_wall()
+	var hit := await wait_for_state(&"WallContact", 1.5)
 	player.input.release(&"jump")
-	check(player.facing.dot(Vector3.RIGHT) > 0.9, "faces the wall while sliding")
-	await wait_for(func() -> bool: return player.velocity.y < 0.0, 1.0)
-	await seconds(0.3)
-	check(player.velocity.y >= -s.wall_slide_speed - 0.01, "slides slowly")
+	return hit
+
+
+## Starts a running jump toward the big wall, holding jump for full height.
+func run_and_jump_at_wall() -> void:
+	await place(Vector3(24, 0, 0), Vector3.RIGHT)
+	player.input.move = Vector3.RIGHT
+	await seconds(0.2)
+	player.input.press(&"jump")
+
+
+## Seconds until the player, flying toward the big wall, touches it.
+func time_to_wall() -> float:
+	var gap := 29.0 - player.radius - player.global_position.x
+	return gap / maxf(player.velocity.x, 0.01)
+
+
+func test_wall_kick_in_window() -> void:
+	check(await jump_into_wall(), "hits the wall")
+	check(player.facing.dot(Vector3.RIGHT) > 0.9, "faces the wall on contact")
+	await seconds(s.wall_kick_window * 0.5)
 	await tap(&"jump")
-	check(player.state_name == &"WallKick", "wall kick")
+	check(player.state_name == &"WallKick", "a well-timed jump kicks off")
 	check(player.velocity.x < -s.wall_kick_speed * 0.8, "kicks away from the wall")
 	check(player.velocity.y > 5.0, "kicks upward")
 	player.input.move = Vector3.ZERO
-	await fly()
+	await wait_for(grounded, 3.0)
+
+
+func test_wall_kick_missed() -> void:
+	check(await jump_into_wall(), "hits the wall")
+	await seconds(s.wall_kick_window + 0.05)
+	check(player.state_name == &"Fall", "bounces off once the window closes")
+	check(player.velocity.x < 0.0, "bounced back off the wall")
+	await tap(&"jump")
+	check(player.state_name != &"WallKick", "too late to kick")
+	# Still holding into the wall: no second chance on it before landing.
+	var retried := await wait_for_state(&"WallContact", 1.0)
+	check(not retried, "no retry on the same wall until landing")
+	player.input.move = Vector3.ZERO
+	await wait_for(grounded, 3.0)
+
+
+func test_wall_kick_early_press() -> void:
+	await run_and_jump_at_wall()
+	await wait_for(func() -> bool: return time_to_wall() < s.wall_kick_early_window * 0.5, 1.5)
+	await tap(&"jump")
+	check(await wait_for_state(&"WallKick", 0.3), "a press just before the hit still kicks")
+	player.input.move = Vector3.ZERO
+	await wait_for(grounded, 3.0)
+
+
+func test_wall_kick_too_early() -> void:
+	await run_and_jump_at_wall()
+	await wait_for(func() -> bool: return time_to_wall() < s.wall_kick_early_window + 0.1, 1.5)
+	await tap(&"jump")
+	check(await wait_for_state(&"WallContact", 0.5), "hits the wall")
+	await seconds(s.wall_kick_window + 0.05)
+	check(not history.has(&"WallKick"), "a press well before the hit doesn't count")
+	player.input.move = Vector3.ZERO
+	await wait_for(grounded, 3.0)
+
+
+func test_wall_contact_needs_speed() -> void:
+	await place(Vector3(27.9, 0, 0), Vector3.RIGHT)
+	player.input.press(&"jump")
+	await seconds(0.15)
+	# Drift gently into the wall instead of hitting it.
+	player.input.move = Vector3.RIGHT * 0.3
+	await seconds(0.6)
+	player.input.release(&"jump")
+	await wait_for(grounded, 2.0)
+	check(not history.has(&"WallContact"), "a gentle bump isn't a wall hit")
+	player.input.move = Vector3.ZERO
 
 
 func test_wall_kick_shaft() -> void:
@@ -477,26 +544,24 @@ func test_wall_kick_shaft() -> void:
 	var direction := Vector3.LEFT
 	player.input.move = direction
 	player.input.press(&"jump")
-	await wait_for_state(&"WallSlide", 1.5)
-	player.input.release(&"jump")
 	var kicks := 0
 	var peak := 0.0
 	for i in 6:
-		if not await wait_for_state(&"WallSlide", 1.5):
+		if not await wait_for_state(&"WallContact", 1.5):
 			break
-		await frames(2)
+		player.input.release(&"jump")
+		await frames(3)
 		direction = -direction
 		player.input.move = direction
 		await tap(&"jump")
 		if player.state_name == &"WallKick":
 			kicks += 1
-		await seconds(0.25)
 		peak = maxf(peak, player.global_position.y)
 	await seconds(0.5)
 	peak = maxf(peak, player.global_position.y)
 	report("wall kicks", kicks, "")
 	report("shaft height reached", peak)
-	check(kicks == 6, "kicks back and forth up the shaft")
+	check(kicks == 6, "well-timed kicks climb back and forth up the shaft")
 	check(peak > 10.0, "climbs the shaft")
 	player.input.move = Vector3.ZERO
 	await wait_for(grounded, 5.0)
@@ -564,7 +629,7 @@ func test_bonk() -> void:
 	player.input.press(&"jump")
 	await seconds(0.1)
 	player.input.release(&"jump")
-	await tap(&"dive")
+	await tap(&"attack")
 	check(await wait_for_state(&"Bonk", 1.0), "diving into a wall bonks")
 	player.input.move = Vector3.ZERO
 	check(player.velocity.x < 0.0, "knocked back")
@@ -578,7 +643,7 @@ func test_stairs() -> void:
 	report("stairs height", player.global_position.y)
 	check(player.global_position.y > 1.95, "walked up the stairs")
 	check(steps >= 7, "each step is reported for smoothing (got %d)" % steps)
-	check(not history.has(&"WallSlide"), "never got stuck")
+	check(not history.has(&"WallContact"), "never got stuck")
 	player.input.move = Vector3.ZERO
 
 
@@ -635,19 +700,6 @@ func test_long_jump_chain() -> void:
 	await fly()
 
 
-func test_wall_let_go() -> void:
-	await place(Vector3(26, 0, 0), Vector3.RIGHT)
-	player.input.move = Vector3.RIGHT
-	player.input.press(&"jump")
-	check(await wait_for_state(&"WallSlide", 1.5), "on the wall")
-	player.input.release(&"jump")
-	player.input.move = Vector3.LEFT
-	check(await wait_for_state(&"Fall", 0.5), "holding away lets go")
-	check(player.velocity.x < 0.0, "pushes off the wall")
-	player.input.move = Vector3.ZERO
-	await wait_for(grounded, 2.0)
-
-
 func test_steep_slope_jump() -> void:
 	await place(Vector3(-60, 8, -41))
 	check(await wait_for_state(&"SteepSlide", 2.0), "sliding")
@@ -661,7 +713,7 @@ func test_belly_slide_off_ledge_rollout() -> void:
 	await place(Vector3(0, 2.2, 61))
 	player.input.move = Vector3.FORWARD
 	await seconds(0.1)
-	await tap(&"dive")
+	await tap(&"attack")
 	player.input.move = Vector3.ZERO
 	check(await wait_for_state(&"BellySlide", 1.5), "belly slide on the platform")
 	check(await wait_for_state(&"Dive", 2.0), "slides off the edge")
@@ -677,7 +729,7 @@ func test_skid_dive() -> void:
 	player.input.move = Vector3.BACK
 	await frames(1)
 	check(player.state_name == &"Skid", "skidding")
-	await tap(&"dive")
+	await tap(&"attack")
 	check(player.state_name == &"Dive", "dives out of the skid")
 	check(player.velocity.z > s.dive_min_speed - 0.1, "dives the new way")
 	player.input.move = Vector3.ZERO

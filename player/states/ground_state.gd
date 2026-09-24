@@ -20,7 +20,7 @@ func handle_ground_actions() -> bool:
 	if player.consume(&"jump"):
 		chain_jump()
 		return true
-	if player.consume(&"dive"):
+	if player.consume(&"attack"):
 		transition_to(&"Dive", {"from_ground": true})
 		return true
 	if player.consume(&"spin"):

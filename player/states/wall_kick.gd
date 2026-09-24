@@ -15,6 +15,7 @@ func enter(previous: StringName, msg: Dictionary) -> void:
 	player.set_horizontal_velocity(direction * settings.wall_kick_speed)
 	player.velocity.y = settings.jump_velocity(settings.wall_kick_height)
 	player.start_wall_cooldown(normal)
+	player.forgive_missed_walls()
 	player.air_spin_available = true
 	_control_lock = settings.wall_kick_control_lock
 	apex_hang = true

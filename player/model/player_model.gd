@@ -3,10 +3,9 @@ class_name PlayerModel
 extends Node3D
 ## The player's look, built from primitives and animated entirely in code.
 ##
-## An original mascot: a bean-shaped body, a beanie with a springy pom-pom,
-## and floating hands and feet. Every pose is procedural (squash & stretch,
-## leans, banking, flips, a run cycle) and driven by the parent [Player]'s
-## state and signals. It never affects movement, so it can later be swapped
+## An original mascot: a bean-shaped body, a beanie, and floating hands and
+## feet. Every pose is procedural (squash & stretch, leans, banking, flips, a
+## run cycle) and driven by the parent [Player]'s state and signals. It never affects movement, so it can later be swapped
 ## for an imported, hand-animated model without touching gameplay code.
 
 ## Height of the point flips and leans rotate around.
@@ -16,6 +15,14 @@ const STRIDE_LENGTH := 2.4
 
 const HAND_REST := Vector3(0.5, 0.78, -0.02)
 const FOOT_REST := Vector3(0.17, 0.09, 0.0)
+
+@export_group("Animation")
+## How far the body tips forward when running at full speed.
+@export_range(0.0, 45.0, 0.5, "suffix:°") var run_lean := 8.0
+## The most the body banks into a turn.
+@export_range(0.0, 45.0, 0.5, "suffix:°") var max_turn_bank := 7.0
+## Bank angle per m/s² of sideways acceleration (speed × turn rate).
+@export_range(0.0, 1.0, 0.01, "suffix:°") var turn_bank_per_acceleration := 0.12
 
 @export_group("Colors")
 @export var body_color := Color("ff7a3d"):
@@ -47,13 +54,12 @@ var _hands: Array[MeshInstance3D] = []
 var _feet: Array[MeshInstance3D] = []
 var _eyes: Array[Node3D] = []
 var _pupils: Array[Node3D] = []
-var _pom: MeshInstance3D
-var _pom_anchor: Node3D
 var _materials: Dictionary[StringName, StandardMaterial3D] = {}
 
 # Animation state.
 var _time := 0.0
 var _yaw := 0.0
+var _facing_yaw := 0.0
 var _turn_rate := 0.0
 var _lean := 0.0
 var _roll := 0.0
@@ -68,8 +74,6 @@ var _flips: Array[Flip] = []
 var _blink_timer := 2.0
 var _eye_closed := 0.0
 var _vertical_offset := 0.0
-var _pom_position := Vector3.ZERO
-var _pom_velocity := Vector3.ZERO
 
 
 ## A rotation played over time around one of the pivot's axes (x = pitch,
@@ -147,11 +151,12 @@ func _animate(delta: float) -> void:
 	var speed_ratio := clampf(speed / s.run_speed, 0.0, 1.5)
 	var rising := player.velocity.y > 0.5
 
-	# Facing, and how fast it is turning (for banking into turns).
+	# Facing, and how fast the facing itself is turning (for banking into turns).
 	var target_yaw := atan2(-player.facing.x, -player.facing.z)
-	var yaw_step := angle_difference(_yaw, target_yaw)
+	var turned := angle_difference(_facing_yaw, target_yaw)
+	_facing_yaw = target_yaw
+	_turn_rate = lerpf(_turn_rate, turned / maxf(delta, 0.0001), _blend(8.0, delta))
 	_yaw = lerp_angle(_yaw, target_yaw, _blend(22.0, delta))
-	_turn_rate = lerpf(_turn_rate, yaw_step / maxf(delta, 0.0001), _blend(10.0, delta))
 
 	# Default pose: standing, arms relaxed.
 	var lean := 0.0
@@ -177,9 +182,12 @@ func _animate(delta: float) -> void:
 				var side := -1.0 if i == 0 else 1.0
 				feet[i] = Vector3(side * 0.17, FOOT_REST.y + maxf(0.0, cos(phase)) * lift, -sin(phase) * stride)
 				hands[i] = Vector3(side * 0.47, 0.8 + maxf(0.0, -sin(phase)) * 0.08 * speed_ratio, sin(phase) * stride * 0.9)
-			pivot += absf(cos(_run_phase)) * 0.06 * minf(speed_ratio, 1.0)
-			lean = -0.08 - 0.22 * minf(speed_ratio, 1.0)
-			roll = clampf(-_turn_rate * speed * 0.012, -0.4, 0.4)
+			pivot += absf(cos(_run_phase)) * 0.05 * minf(speed_ratio, 1.0)
+			lean = -deg_to_rad(run_lean) * minf(speed_ratio, 1.0)
+			# Bank into the turn with its sideways acceleration, but only subtly.
+			# (Turning left raises the yaw; a positive roll tips the top to the left.)
+			var bank := deg_to_rad(turn_bank_per_acceleration) * _turn_rate * speed
+			roll = clampf(bank, -deg_to_rad(max_turn_bank), deg_to_rad(max_turn_bank))
 			limb_rate = 30.0
 		&"Skid":
 			lean = 0.4
@@ -224,11 +232,13 @@ func _animate(delta: float) -> void:
 			feet = [Vector3(-0.3, 0.09, 0.0), Vector3(0.3, 0.09, 0.0)]
 			squint = 0.8
 			limb_rate = 30.0
-		&"WallSlide":
-			lean = 0.1
+		&"WallContact":
+			lean = 0.12
+			crouch = 0.1
 			hands = [Vector3(-0.3, 1.18, -0.4), Vector3(0.3, 1.1, -0.4)]
-			feet = [Vector3(-0.18, 0.18, -0.33), Vector3(0.18, 0.1, -0.3)]
-			squint = 0.4
+			feet = [Vector3(-0.18, 0.3, -0.33), Vector3(0.18, 0.22, -0.3)]
+			squint = 0.5
+			limb_rate = 40.0
 		&"LedgeHang":
 			var sway := sin(_time * 3.0) * 0.04
 			hands = [Vector3(-0.26, s.ledge_hang_depth + 0.03, -0.44), Vector3(0.26, s.ledge_hang_depth + 0.03, -0.44)]
@@ -275,7 +285,7 @@ func _animate(delta: float) -> void:
 			if state == &"GroundPoundJump":
 				hands = [Vector3(-0.2, 1.65, 0.0), Vector3(0.2, 1.65, 0.0)]
 				feet = [Vector3(-0.08, 0.0, 0.0), Vector3(0.08, 0.0, 0.0)]
-			lean = -0.12 * minf(speed_ratio, 1.0)
+			lean = -deg_to_rad(run_lean) * 0.6 * minf(speed_ratio, 1.0)
 
 	# Flips tuck the limbs into a ball.
 	var flip_angles := _update_flips(delta)
@@ -289,7 +299,7 @@ func _animate(delta: float) -> void:
 
 	# Blend toward the pose.
 	_lean = lerpf(_lean, lean, _blend(14.0, delta))
-	_roll = lerpf(_roll, roll, _blend(10.0, delta))
+	_roll = lerpf(_roll, roll, _blend(6.0, delta))
 	_pivot_height = lerpf(_pivot_height, pivot, _blend(16.0, delta))
 	_crouch = lerpf(_crouch, crouch, _blend(18.0, delta))
 	for i in 2:
@@ -300,7 +310,6 @@ func _animate(delta: float) -> void:
 	_update_step_smoothing(delta)
 	_update_eyes(delta, squint)
 	_apply(flip_angles)
-	_update_pom(delta)
 
 
 func _apply(flip_angles: Vector3) -> void:
@@ -344,17 +353,6 @@ func _update_eyes(delta: float, squint: float) -> void:
 	for i in 2:
 		_eyes[i].scale = Vector3(1.0, lerpf(1.0, 0.12, _eye_closed), 1.0)
 		_pupils[i].position = Vector3(local_velocity.x * 0.025, -local_velocity.y * 0.012, 0.0)
-
-
-func _update_pom(delta: float) -> void:
-	var anchor := _pom_anchor.global_position
-	var accel := (anchor - _pom_position) * 380.0 - _pom_velocity * 12.0 + Vector3.DOWN * 5.0
-	_pom_velocity += accel * delta
-	_pom_position += _pom_velocity * delta
-	var offset := _pom_position - anchor
-	if offset.length() > 0.16:
-		_pom_position = anchor + offset.normalized() * 0.16
-	_pom.global_position = _pom_position
 
 
 func _update_flips(delta: float) -> Vector3:
@@ -407,7 +405,10 @@ func _on_state_changed(_previous: StringName, current: StringName) -> void:
 	match current:
 		&"GroundPound":
 			_start_flip(Vector3.AXIS_X, -TAU, player.settings.ground_pound_hang_time * 0.9)
-		&"Dive", &"WallSlide", &"LedgeHang", &"LedgeClimb", &"Bonk", &"BellySlide", &"SteepSlide":
+		&"WallContact":
+			_cancel_flips()
+			_squash_velocity -= 2.5 # Smack into the wall.
+		&"Dive", &"LedgeHang", &"LedgeClimb", &"Bonk", &"BellySlide", &"SteepSlide":
 			_cancel_flips()
 
 
@@ -435,15 +436,13 @@ func _snap() -> void:
 	if player == null:
 		return
 	_yaw = atan2(-player.facing.x, -player.facing.z)
+	_facing_yaw = _yaw
+	_turn_rate = 0.0
 	_flips.clear()
 	_squash = 0.0
 	_squash_velocity = 0.0
 	_vertical_offset = 0.0
 	_apply(Vector3.ZERO)
-	_pom_position = _pom_anchor.global_position
-	_pom_velocity = Vector3.ZERO
-	_pom.global_position = _pom_position
-	_pom.reset_physics_interpolation()
 
 
 # --- Construction -----------------------------------------------------------------
@@ -478,7 +477,7 @@ func _build() -> void:
 	belly.height = 0.5
 	_part("Belly", belly, &"belly", _body, Vector3(0, 0.66, -0.2), Vector3(1.0, 1.15, 0.6))
 
-	# Hat: a beanie with a folded brim and a pom-pom on a spring.
+	# Hat: a beanie with a folded brim.
 	var cap := SphereMesh.new()
 	cap.radius = 0.375
 	cap.height = 0.375
@@ -489,12 +488,6 @@ func _build() -> void:
 	brim.bottom_radius = 0.38
 	brim.height = 0.1
 	_part("Brim", brim, &"hat", _body, Vector3(0, 1.21, 0))
-	_pom_anchor = _node("PomAnchor", _body, Vector3(0, 1.5, 0.02))
-	var pom_mesh := SphereMesh.new()
-	pom_mesh.radius = 0.1
-	pom_mesh.height = 0.2
-	_pom = _part("PomPom", pom_mesh, &"glove", self, Vector3(0, 1.56, 0))
-	_pom.top_level = true
 
 	# Eyes: tall ovals with pupils and a glint; scaled vertically to blink.
 	for side in [-1.0, 1.0]:

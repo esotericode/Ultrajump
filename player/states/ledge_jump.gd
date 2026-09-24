@@ -18,7 +18,7 @@ func enter(previous: StringName, msg: Dictionary) -> void:
 	player.set_horizontal_velocity(_drift)
 	apex_hang = true
 	# Rising along the ledge's face: don't cling to it or re-grab it.
-	can_wall_slide = false
+	can_wall_kick = false
 	can_grab_ledge = false
 	player.jumped.emit(&"ledge_jump")
 

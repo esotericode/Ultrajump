@@ -20,7 +20,7 @@ var turn_to_velocity := true
 var can_dive := true
 var can_ground_pound := true
 var can_spin := true
-var can_wall_slide := true
+var can_wall_kick := true
 var can_grab_ledge := true
 
 
@@ -33,7 +33,7 @@ func enter(_previous: StringName, _msg: Dictionary) -> void:
 	can_dive = true
 	can_ground_pound = true
 	can_spin = true
-	can_wall_slide = true
+	can_wall_kick = true
 	can_grab_ledge = true
 
 
@@ -50,7 +50,7 @@ func physics_update(delta: float) -> void:
 
 ## Dive, ground pound and air spin presses. Returns true if the state changed.
 func handle_air_actions() -> bool:
-	if can_dive and player.consume(&"dive"):
+	if can_dive and player.consume(&"attack"):
 		transition_to(&"Dive")
 		return true
 	if can_ground_pound and player.consume(&"crouch"):
@@ -80,7 +80,8 @@ func on_land() -> void:
 	player.enter_ground_state()
 
 
-## Walls start a wall slide; slopes too steep to stand on start a steep slide.
+## Hitting a wall at speed opens a brief wall kick window; slopes too steep to
+## stand on start a steep slide.
 func check_surfaces() -> bool:
 	if not player.is_on_wall():
 		return false
@@ -88,13 +89,13 @@ func check_surfaces() -> bool:
 	if normal.y > 0.2:
 		transition_to(&"SteepSlide")
 		return true
-	if not can_wall_slide or normal.y < -0.3:
+	if not can_wall_kick or normal.y < -0.3:
 		return false
 	var wall := Vector3(normal.x, 0.0, normal.z).normalized()
-	var approach := maxf(player.velocity_before_move.dot(-wall), player.input.move.dot(-wall) * settings.wall_slide_min_approach_speed * 2.0)
-	if approach < settings.wall_slide_min_approach_speed or not player.can_wall_slide_on(wall):
+	var speed_into_wall := player.velocity_before_move.dot(-wall)
+	if speed_into_wall < settings.wall_contact_min_speed or not player.can_touch_wall(wall):
 		return false
-	transition_to(&"WallSlide", {"normal": wall})
+	transition_to(&"WallContact", {"normal": wall})
 	return true
 
 

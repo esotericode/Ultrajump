@@ -45,8 +45,8 @@ func _ready() -> void:
 func _physics_process(_delta: float) -> void:
 	if player == null:
 		return
-	var sliding := player.state_name in [&"Skid", &"CrouchSlide", &"BellySlide", &"SteepSlide", &"WallSlide"]
-	var speed := player.horizontal_speed() if player.state_name != &"WallSlide" else absf(player.velocity.y)
+	var sliding := player.state_name in [&"Skid", &"CrouchSlide", &"BellySlide", &"SteepSlide"]
+	var speed := player.horizontal_speed()
 	if sliding and speed > 1.5:
 		if not _skid.playing:
 			_skid.play()
@@ -98,6 +98,8 @@ func _on_state_changed(_previous: StringName, current: StringName) -> void:
 			play(&"dive", -8.0)
 		&"GroundPound":
 			play(&"ground_pound_spin", -9.0)
+		&"WallContact":
+			play(&"wall_touch", -5.0)
 
 
 # --- Synthesis -------------------------------------------------------------------
@@ -113,6 +115,7 @@ func _generate() -> void:
 	sounds[&"ground_pound_spin"] = _to_stream(_sweep(0.16, 900.0, 420.0, 0.3, 0.0))
 	sounds[&"ground_pound_impact"] = _to_stream(_mix([_sweep(0.4, 95.0, 32.0, 1.0, 0.0, true), _noise(0.22, 700.0, 0.8)]))
 	sounds[&"bonk"] = _to_stream(_mix([_sweep(0.14, 340.0, 170.0, 0.55, 0.0), _sweep(0.05, 900.0, 900.0, 0.25, 0.0, true)]))
+	sounds[&"wall_touch"] = _to_stream(_mix([_sweep(0.06, 220.0, 150.0, 0.7, 0.0, true), _noise(0.04, 1500.0, 0.4)]))
 	sounds[&"grab"] = _to_stream(_mix([_noise(0.025, 4000.0, 0.5), _sweep(0.04, 1300.0, 1100.0, 0.25, 0.0, true)]))
 	var skid := _to_stream(_noise(1.0, 1400.0, 0.5))
 	skid.loop_mode = AudioStreamWAV.LOOP_FORWARD

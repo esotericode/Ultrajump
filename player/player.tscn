@@ -20,7 +20,7 @@
 [ext_resource type="Script" path="res://player/states/dive.gd" id="s14_dive"]
 [ext_resource type="Script" path="res://player/states/ground_pound.gd" id="s15_ground_pound"]
 [ext_resource type="Script" path="res://player/states/spin.gd" id="s16_spin"]
-[ext_resource type="Script" path="res://player/states/wall_slide.gd" id="s17_wall_slide"]
+[ext_resource type="Script" path="res://player/states/wall_contact.gd" id="s17_wall_contact"]
 [ext_resource type="Script" path="res://player/states/wall_kick.gd" id="s18_wall_kick"]
 [ext_resource type="Script" path="res://player/states/steep_slide.gd" id="s19_steep_slide"]
 [ext_resource type="Script" path="res://player/states/bonk.gd" id="s20_bonk"]
@@ -108,8 +108,8 @@ script = ExtResource("s15_ground_pound")
 [node name="Spin" type="Node" parent="StateMachine"]
 script = ExtResource("s16_spin")
 
-[node name="WallSlide" type="Node" parent="StateMachine"]
-script = ExtResource("s17_wall_slide")
+[node name="WallContact" type="Node" parent="StateMachine"]
+script = ExtResource("s17_wall_contact")
 
 [node name="WallKick" type="Node" parent="StateMachine"]
 script = ExtResource("s18_wall_kick")

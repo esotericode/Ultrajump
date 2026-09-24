@@ -19,7 +19,7 @@ func physics_update(delta: float) -> void:
 	if player.consume(&"jump"):
 		transition_to(&"SideFlip", {"direction": turn_direction})
 		return
-	if player.consume(&"dive"):
+	if player.consume(&"attack"):
 		player.facing = turn_direction
 		player.set_horizontal_velocity(Vector3.ZERO)
 		transition_to(&"Dive", {"from_ground": true})

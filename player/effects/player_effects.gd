@@ -17,7 +17,6 @@ var _sparkle_material: StandardMaterial3D
 var _fade_out: Gradient
 var _shrink: Curve
 var _slide_dust: CPUParticles3D
-var _wall_dust: CPUParticles3D
 var _trail: CPUParticles3D
 
 
@@ -42,7 +41,6 @@ func _ready() -> void:
 
 	_slide_dust = _emitter(24, 0.45, 0.28, Color(0.92, 0.9, 0.86, 0.8))
 	_slide_dust.position = Vector3(0, 0.1, 0)
-	_wall_dust = _emitter(16, 0.35, 0.18, Color(0.92, 0.9, 0.86, 0.8))
 	_trail = _emitter(40, 0.35, 0.12, Color(1.0, 0.95, 0.75, 0.9))
 	_trail.material_override = _sparkle_material
 	_trail.position = Vector3(0, 0.8, 0)
@@ -52,6 +50,7 @@ func _ready() -> void:
 	player.jumped.connect(_on_jumped)
 	player.ground_pound_impact.connect(_on_ground_pound_impact)
 	player.wall_kicked.connect(_on_wall_kicked)
+	player.state_changed.connect(_on_state_changed)
 	player.bonked.connect(_on_bonked)
 	player.ledge_grabbed.connect(_on_ledge_grabbed)
 	player.spun.connect(_on_spun)
@@ -65,10 +64,6 @@ func _physics_process(_delta: float) -> void:
 	var speed := player.horizontal_speed()
 	_slide_dust.emitting = state in SLIDE_STATES and speed > 2.0
 	_trail.emitting = state in TRAIL_STATES or (state == &"Run" and speed > player.settings.run_speed * 1.2)
-	var wall_sliding := state == &"WallSlide" and player.velocity.y < -1.0
-	_wall_dust.emitting = wall_sliding
-	if wall_sliding:
-		_wall_dust.global_position = player.global_position + player.facing * (player.radius + 0.05) + Vector3.UP * 1.1
 
 
 # --- Reactions -------------------------------------------------------------------
@@ -100,6 +95,13 @@ func _on_wall_kicked(wall_normal: Vector3) -> void:
 	_ring_burst(player.global_position - wall_normal * player.radius + Vector3.UP * 0.4, 8, 2.5, 0.25, wall_normal)
 
 
+func _on_state_changed(_previous: StringName, current: StringName) -> void:
+	if current == &"WallContact":
+		# Mark the moment of impact: the wall kick window opens now.
+		var wall_normal := -player.facing
+		_ring_burst(player.global_position - wall_normal * player.radius + Vector3.UP * 0.8, 6, 2.0, 0.2, wall_normal)
+
+
 func _on_bonked(_wall_normal: Vector3) -> void:
 	_sparkle_burst(player.global_position + Vector3.UP * 1.4, 8, 2.0, Color(1.0, 0.85, 0.2))
 	_rumble(0.5, 0.5, 0.18)
@@ -115,7 +117,7 @@ func _on_spun(in_air: bool) -> void:
 
 
 func _on_teleported() -> void:
-	for emitter in [_slide_dust, _wall_dust, _trail]:
+	for emitter in [_slide_dust, _trail]:
 		(emitter as CPUParticles3D).restart()
 		(emitter as CPUParticles3D).emitting = false
 

@@ -162,17 +162,19 @@ extends Resource
 ## Diving out of a ground pound is allowed after this long.
 @export_range(0.0, 0.5, 0.01, "suffix:s") var ground_pound_dive_delay := 0.08
 
-@export_group("Wall Slide & Kick")
-## Top speed sliding down a wall.
-@export_range(0.0, 20.0, 0.1, "suffix:m/s") var wall_slide_speed := 3.5
-## How quickly a fast fall is braked down to [member wall_slide_speed].
-@export_range(1.0, 200.0, 0.5, "suffix:m/s²") var wall_slide_deceleration := 50.0
+@export_group("Wall Kick")
+## Jump into a wall, then jump again right as you hit it to kick off. You have
+## to be moving into the wall at least this fast for the hit to count.
+@export_range(0.0, 20.0, 0.1, "suffix:m/s") var wall_contact_min_speed := 4.5
+## After hitting a wall you have this long to press jump...
+@export_range(0.0, 0.5, 0.005, "suffix:s") var wall_kick_window := 0.12
+## ...and a press made up to this long before the hit counts too.
+@export_range(0.0, 0.3, 0.005, "suffix:s") var wall_kick_early_window := 0.05
 ## Walls closer to the ground than this are ignored (you just land instead).
-@export_range(0.0, 5.0, 0.05, "suffix:m") var wall_slide_min_height := 0.6
-## Minimum speed into a wall (or stick push toward it) to latch on.
-@export_range(0.0, 10.0, 0.1, "suffix:m/s") var wall_slide_min_approach_speed := 1.0
-## Hold away from the wall this long to let go.
-@export_range(0.0, 1.0, 0.01, "suffix:s") var wall_release_time := 0.15
+@export_range(0.0, 5.0, 0.05, "suffix:m") var wall_contact_min_height := 0.6
+## Speed you bounce back off a wall when the kick is missed. You then can't
+## kick off that wall again until you land or kick off a different one.
+@export_range(0.0, 10.0, 0.1, "suffix:m/s") var wall_bounce_speed := 2.0
 ## Apex height of a wall kick.
 @export_range(0.5, 15.0, 0.05, "suffix:m") var wall_kick_height := 2.6
 ## Speed a wall kick pushes you away from the wall.
