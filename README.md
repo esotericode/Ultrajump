@@ -8,6 +8,8 @@ level with debug tools for tuning how everything feels.
 
 Built with **Godot 4.7** (4.7.2 stable), GDScript, Jolt physics.
 
+![Triple jump, backflip, wall kicks and the live tuning panel](docs/screenshot.png)
+
 ## Getting started
 
 1. Install [Godot 4.7](https://godotengine.org/download) (the standard build; no .NET needed).

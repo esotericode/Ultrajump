@@ -71,6 +71,7 @@ func _run_all() -> void:
 		test_steep_slope_jump,
 		test_belly_slide_off_ledge_rollout,
 		test_skid_dive,
+		test_slow_motion_jump_height,
 	]
 	for test in tests:
 		_current_test = test.get_method()
@@ -682,3 +683,14 @@ func test_skid_dive() -> void:
 	player.input.move = Vector3.ZERO
 	await wait_for_state(&"BellySlide", 2.0)
 	await seconds(1.0)
+
+
+func test_slow_motion_jump_height() -> void:
+	await place(Vector3(100, 0, 100))
+	Engine.time_scale = 0.25
+	player.input.press(&"jump")
+	var flight := await fly(8.0)
+	player.input.release(&"jump")
+	Engine.time_scale = 1.0
+	report("single jump height at 0.25x", flight.height)
+	check_near(flight.height, s.single_jump_height, s.single_jump_height * 0.02, "slow motion doesn't change jump height")

@@ -251,5 +251,6 @@ func jump_velocity(height: float, gravity_scale := 1.0, apex_hang := true) -> fl
 	else:
 		speed = sqrt(2.0 * g * (height - apex_zone_height) + threshold * threshold)
 	# Stepping physics in discrete ticks loses about half a tick of rise;
-	# add it back so the apex matches the configured height.
-	return speed + 0.5 * g / Engine.physics_ticks_per_second
+	# add it back so the apex matches the configured height (slow motion included).
+	var tick := Engine.time_scale / Engine.physics_ticks_per_second
+	return speed + 0.5 * g * tick
