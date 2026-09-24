@@ -8,6 +8,8 @@ extends CharacterBody3D
 ## react to the signals below and never drive movement. Every tuning value is
 ## in [member settings].
 
+# These are emitted by the movement states rather than by this script.
+@warning_ignore_start("unused_signal")
 ## Emitted after every state change, e.g. [code]&"Run" -> &"Jump"[/code].
 signal state_changed(previous: StringName, current: StringName)
 ## A jump of some [param kind] left the ground (or a wall / ledge). Kinds:
@@ -22,8 +24,11 @@ signal bonked(wall_normal: Vector3)
 signal ledge_grabbed
 ## An air spin started ([param in_air] true) or a cosmetic ground twirl ([param in_air] false).
 signal spun(in_air: bool)
+@warning_ignore_restore("unused_signal")
 ## Moved instantly (respawn / debug teleport); visuals should snap, not blend.
 signal teleported
+## Popped up or down a step by [param height] meters while walking; visuals can smooth it out.
+signal stepped(height: float)
 
 @export var settings: MovementSettings
 ## Node whose orientation makes stick input camera-relative (normally the camera).
@@ -162,9 +167,9 @@ func face_velocity(delta: float, turn_speed_degrees: float) -> void:
 
 ## Gravity with the platformer niceties: faster falls, a floaty apex while jump
 ## is held, and extra gravity when jump is released early (variable height).
-func apply_gravity(delta: float, scale := 1.0, variable_height := false, apex_hang := false) -> void:
+func apply_gravity(delta: float, gravity_scale := 1.0, variable_height := false, apex_hang := false) -> void:
 	var s := settings
-	var g := s.gravity * scale
+	var g := s.gravity * gravity_scale
 	var holding_jump := input.held(&"jump")
 	if velocity.y > 0.0:
 		if variable_height and not holding_jump:
@@ -264,7 +269,14 @@ func move(allow_step := false) -> void:
 	moved_this_tick = true
 	if allow_step and is_on_floor() and _try_step_up():
 		return
+	var height_before := global_position.y
+	var on_flat_floor := is_on_floor() and get_floor_normal().y > 0.99
 	move_and_slide()
+	# On flat, static ground, any drop is floor snapping down a step.
+	if allow_step and on_flat_floor and is_on_floor() and get_floor_normal().y > 0.99 and get_platform_velocity().is_zero_approx():
+		var drop := global_position.y - height_before
+		if drop < -0.02:
+			stepped.emit(drop)
 
 
 ## Where to go once landed: running, standing, or crouching/sliding if crouch is held.
@@ -445,9 +457,11 @@ func _try_step_up() -> bool:
 	if ground.get_normal().y < cos(floor_max_angle):
 		return false
 	var landed_transform := over_step.translated(ground.get_travel())
-	if landed_transform.origin.y - start.origin.y < 0.01:
+	var rise := landed_transform.origin.y - start.origin.y
+	if rise < 0.01:
 		return false
 	global_transform = landed_transform
+	stepped.emit(rise)
 	return true
 
 

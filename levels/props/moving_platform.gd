@@ -36,6 +36,12 @@ func _ready() -> void:
 	_rebuild()
 
 
+## Jumps back to the start of the cycle.
+func restart() -> void:
+	_time = 0.0
+	position = _start
+
+
 func _physics_process(delta: float) -> void:
 	if Engine.is_editor_hint():
 		return

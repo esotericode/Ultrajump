@@ -103,25 +103,25 @@ func _on_state_changed(_previous: StringName, current: StringName) -> void:
 # --- Synthesis -------------------------------------------------------------------
 
 func _generate() -> void:
-	sounds[&"jump"] = _sweep(0.13, 300.0, 620.0, 0.5, 0.0)
-	sounds[&"jump_big"] = _sweep(0.26, 360.0, 980.0, 0.45, 7.0)
-	sounds[&"long_jump"] = _mix([_sweep(0.24, 520.0, 340.0, 0.35, 0.0), _noise(0.24, 2500.0, 0.3)])
-	sounds[&"wall_kick"] = _mix([_sweep(0.09, 700.0, 380.0, 0.4, 0.0), _noise(0.06, 3000.0, 0.3)])
-	sounds[&"dive"] = _noise(0.26, 1800.0, 0.6, true)
-	sounds[&"spin"] = _noise(0.36, 3200.0, 0.5, true, 22.0)
-	sounds[&"land"] = _mix([_sweep(0.09, 130.0, 55.0, 0.9, 0.0, true), _noise(0.06, 900.0, 0.35)])
-	sounds[&"ground_pound_spin"] = _sweep(0.16, 900.0, 420.0, 0.3, 0.0)
-	sounds[&"ground_pound_impact"] = _mix([_sweep(0.4, 95.0, 32.0, 1.0, 0.0, true), _noise(0.22, 700.0, 0.8)])
-	sounds[&"bonk"] = _mix([_sweep(0.14, 340.0, 170.0, 0.55, 0.0), _sweep(0.05, 900.0, 900.0, 0.25, 0.0, true)])
-	sounds[&"grab"] = _mix([_noise(0.025, 4000.0, 0.5), _sweep(0.04, 1300.0, 1100.0, 0.25, 0.0, true)])
-	var skid := _noise(1.0, 1400.0, 0.5) as AudioStreamWAV
+	sounds[&"jump"] = _to_stream(_sweep(0.13, 300.0, 620.0, 0.5, 0.0))
+	sounds[&"jump_big"] = _to_stream(_sweep(0.26, 360.0, 980.0, 0.45, 7.0))
+	sounds[&"long_jump"] = _to_stream(_mix([_sweep(0.24, 520.0, 340.0, 0.35, 0.0), _noise(0.24, 2500.0, 0.3)]))
+	sounds[&"wall_kick"] = _to_stream(_mix([_sweep(0.09, 700.0, 380.0, 0.4, 0.0), _noise(0.06, 3000.0, 0.3)]))
+	sounds[&"dive"] = _to_stream(_noise(0.26, 1800.0, 0.6, true))
+	sounds[&"spin"] = _to_stream(_noise(0.36, 3200.0, 0.5, true, 22.0))
+	sounds[&"land"] = _to_stream(_mix([_sweep(0.09, 130.0, 55.0, 0.9, 0.0, true), _noise(0.06, 900.0, 0.35)]))
+	sounds[&"ground_pound_spin"] = _to_stream(_sweep(0.16, 900.0, 420.0, 0.3, 0.0))
+	sounds[&"ground_pound_impact"] = _to_stream(_mix([_sweep(0.4, 95.0, 32.0, 1.0, 0.0, true), _noise(0.22, 700.0, 0.8)]))
+	sounds[&"bonk"] = _to_stream(_mix([_sweep(0.14, 340.0, 170.0, 0.55, 0.0), _sweep(0.05, 900.0, 900.0, 0.25, 0.0, true)]))
+	sounds[&"grab"] = _to_stream(_mix([_noise(0.025, 4000.0, 0.5), _sweep(0.04, 1300.0, 1100.0, 0.25, 0.0, true)]))
+	var skid := _to_stream(_noise(1.0, 1400.0, 0.5))
 	skid.loop_mode = AudioStreamWAV.LOOP_FORWARD
 	skid.loop_end = RATE
 	sounds[&"skid"] = skid
 
 
 ## A pitch sweep with a punchy envelope. Square-ish unless [param pure] (sine).
-func _sweep(duration: float, from_hz: float, to_hz: float, volume: float, vibrato_hz: float, pure := false) -> AudioStreamWAV:
+func _sweep(duration: float, from_hz: float, to_hz: float, volume: float, vibrato_hz: float, pure := false) -> PackedFloat32Array:
 	var count := int(duration * RATE)
 	var samples := PackedFloat32Array()
 	samples.resize(count)
@@ -136,12 +136,12 @@ func _sweep(duration: float, from_hz: float, to_hz: float, volume: float, vibrat
 		if not pure:
 			wave = 0.55 * signf(wave) + 0.45 * wave
 		samples[i] = wave * volume * _envelope(t, duration)
-	return _to_stream(samples)
+	return samples
 
 
 ## Low-passed white noise. [param swell] fades it in and out (a whoosh);
 ## [param tremolo_hz] pulses it.
-func _noise(duration: float, cutoff_hz: float, volume: float, swell := false, tremolo_hz := 0.0) -> AudioStreamWAV:
+func _noise(duration: float, cutoff_hz: float, volume: float, swell := false, tremolo_hz := 0.0) -> PackedFloat32Array:
 	var count := int(duration * RATE)
 	var samples := PackedFloat32Array()
 	samples.resize(count)
@@ -154,7 +154,7 @@ func _noise(duration: float, cutoff_hz: float, volume: float, swell := false, tr
 		if tremolo_hz > 0.0:
 			gain *= 0.6 + 0.4 * sin(TAU * tremolo_hz * i / RATE)
 		samples[i] = filtered * volume * gain * 2.0
-	return _to_stream(samples)
+	return samples
 
 
 ## Quick attack, then an exponential-ish decay.
@@ -165,17 +165,15 @@ func _envelope(t: float, duration: float) -> float:
 	return pow(1.0 - (t - attack) / (1.0 - attack), 1.6)
 
 
-func _mix(streams: Array) -> AudioStreamWAV:
-	var longest := 0
-	for stream: AudioStreamWAV in streams:
-		longest = maxi(longest, stream.data.size() / 2)
-	var samples := PackedFloat32Array()
-	samples.resize(longest)
-	for stream: AudioStreamWAV in streams:
-		var data := stream.data
-		for i in data.size() / 2:
-			samples[i] += data.decode_s16(i * 2) / 32767.0
-	return _to_stream(samples)
+## Sums sample buffers of any lengths.
+func _mix(layers: Array[PackedFloat32Array]) -> PackedFloat32Array:
+	var mixed := PackedFloat32Array()
+	for layer in layers:
+		if layer.size() > mixed.size():
+			mixed.resize(layer.size())
+		for i in layer.size():
+			mixed[i] += layer[i]
+	return mixed
 
 
 func _to_stream(samples: PackedFloat32Array) -> AudioStreamWAV:

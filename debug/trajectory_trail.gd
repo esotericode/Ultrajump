@@ -25,7 +25,7 @@ var state_colors: Dictionary[StringName, Color] = {
 	&"Fall": Color(0.75, 0.75, 0.75),
 	&"Bonk": Color(0.2, 0.2, 0.2),
 }
-var default_color := Color(1.0, 1.0, 1.0)
+var default_color := Color(1.0, 0.95, 0.2)
 
 var _points := PackedVector3Array()
 var _colors := PackedColorArray()

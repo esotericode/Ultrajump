@@ -272,7 +272,7 @@ func _label(parent: Node, text: String, position: Vector3, font_size: int, color
 	label.text = text
 	label.font_size = font_size
 	label.pixel_size = 0.01
-	label.outline_size = maxi(font_size / 6, 8)
+	label.outline_size = maxi(roundi(font_size / 6.0), 8)
 	label.outline_modulate = Color(0.1, 0.1, 0.16)
 	label.modulate = color
 	label.position = position

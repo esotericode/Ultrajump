@@ -74,6 +74,8 @@ func _physics_process(_delta: float) -> void:
 # --- Reactions -------------------------------------------------------------------
 
 func _on_landed(impact_speed: float) -> void:
+	if impact_speed > 18.0:
+		_rumble(0.3, 0.1, 0.12)
 	if impact_speed > 5.0:
 		var amount := clampi(int(impact_speed * 0.8), 6, 20)
 		_ring_burst(player.global_position + Vector3.UP * 0.1, amount, clampf(impact_speed * 0.25, 2.0, 6.0), 0.3)
@@ -91,6 +93,7 @@ func _on_ground_pound_impact() -> void:
 	var feet := player.global_position + Vector3.UP * 0.08
 	_ring_burst(feet, 22, 7.0, 0.4)
 	_shockwave(feet)
+	_rumble(0.6, 0.8, 0.22)
 
 
 func _on_wall_kicked(wall_normal: Vector3) -> void:
@@ -99,6 +102,7 @@ func _on_wall_kicked(wall_normal: Vector3) -> void:
 
 func _on_bonked(_wall_normal: Vector3) -> void:
 	_sparkle_burst(player.global_position + Vector3.UP * 1.4, 8, 2.0, Color(1.0, 0.85, 0.2))
+	_rumble(0.5, 0.5, 0.18)
 
 
 func _on_ledge_grabbed() -> void:
@@ -230,6 +234,12 @@ func _particle_material(glowing: bool) -> StandardMaterial3D:
 		material.emission = Color(1.0, 0.95, 0.8)
 		material.emission_energy_multiplier = 0.6
 	return material
+
+
+## Gamepad vibration on every connected controller.
+func _rumble(weak: float, strong: float, duration: float) -> void:
+	for device in Input.get_connected_joypads():
+		Input.start_joy_vibration(device, weak, strong, duration)
 
 
 ## Where one-shot effects are spawned: the player's parent (the level), so they stay in place.

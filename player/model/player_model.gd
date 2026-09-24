@@ -68,8 +68,6 @@ var _flips: Array[Flip] = []
 var _blink_timer := 2.0
 var _eye_closed := 0.0
 var _vertical_offset := 0.0
-var _last_floor_y := 0.0
-var _was_on_floor := false
 var _pom_position := Vector3.ZERO
 var _pom_velocity := Vector3.ZERO
 
@@ -129,6 +127,7 @@ func _ready() -> void:
 	player.spun.connect(_on_spun)
 	player.ground_pound_impact.connect(_on_ground_pound_impact)
 	player.teleported.connect(_snap)
+	player.stepped.connect(_on_stepped)
 	_snap.call_deferred()
 
 
@@ -327,17 +326,9 @@ func _update_squash(delta: float) -> void:
 	_squash = clampf(_squash + _squash_velocity * delta, -0.45, 0.45)
 
 
-## Smooths out the pop of stepping up stairs (or snapping down them).
+## Eases the body toward the collider after popping up or down a step.
 func _update_step_smoothing(delta: float) -> void:
-	var on_floor := player.is_on_floor()
-	var y := player.global_position.y
-	if on_floor and _was_on_floor:
-		var step := y - _last_floor_y
-		if absf(step) > 0.02 and absf(step) < 0.6:
-			_vertical_offset -= step
 	_vertical_offset = lerpf(_vertical_offset, 0.0, _blend(16.0, delta))
-	_last_floor_y = y
-	_was_on_floor = on_floor
 
 
 func _update_eyes(delta: float, squint: float) -> void:
@@ -423,6 +414,11 @@ func _on_state_changed(_previous: StringName, current: StringName) -> void:
 func _on_landed(impact_speed: float) -> void:
 	_squash_velocity -= clampf(impact_speed * 0.22, 0.5, 6.0)
 	_cancel_flips()
+
+
+func _on_stepped(height: float) -> void:
+	# Start where the body was, then catch up over a few frames.
+	_vertical_offset = clampf(_vertical_offset - height, -0.5, 0.5)
 
 
 func _on_ground_pound_impact() -> void:

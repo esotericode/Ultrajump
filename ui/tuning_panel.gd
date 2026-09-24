@@ -135,8 +135,12 @@ func _add_row(property: Dictionary, group: String) -> void:
 			var display := func(value: float) -> void:
 				value_label.text = ("%d" if property.type == TYPE_INT else "%.2f") % value + (" " + hint.suffix if hint.suffix else "")
 			display.call(slider.value)
+			var is_int: bool = property.type == TYPE_INT
 			slider.value_changed.connect(func(value: float) -> void:
-				_settings.set(key, int(value) if property.type == TYPE_INT else value)
+				if is_int:
+					_settings.set(key, roundi(value))
+				else:
+					_settings.set(key, value)
 				display.call(value))
 			_editors[key] = slider
 		_:

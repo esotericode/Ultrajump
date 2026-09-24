@@ -15,7 +15,10 @@ const TICK := 1.0 / 120.0
 
 var player: Player
 var s: MovementSettings
+var elevator: MovingPlatform
+var shuttle: MovingPlatform
 var history: Array[StringName] = []
+var steps := 0
 var checks := 0
 var failures := 0
 var _current_test := ""
@@ -29,6 +32,7 @@ func _initialize() -> void:
 	player.input.scripted = true
 	s = player.settings
 	player.state_changed.connect(func(_from: StringName, to: StringName) -> void: history.append(to))
+	player.stepped.connect(func(_height: float) -> void: steps += 1)
 	_run_all.call_deferred()
 
 
@@ -60,6 +64,13 @@ func _run_all() -> void:
 		test_stairs,
 		test_walkable_ramp,
 		test_steep_slope,
+		test_elevator,
+		test_shuttle_platform,
+		test_long_jump_chain,
+		test_wall_let_go,
+		test_steep_slope_jump,
+		test_belly_slide_off_ledge_rollout,
+		test_skid_dive,
 	]
 	for test in tests:
 		_current_test = test.get_method()
@@ -86,6 +97,20 @@ func _build_arena() -> void:
 	_box(Vector3(60, 1.0, -16.0 - 1.0), Vector3(4, 2.0, 2.0)) # Landing at the top of the stairs
 	_box(Vector3(80, 2, 40), Vector3(6, 0.5, 14), Vector3(-25, 0, 0)) # 25 degree ramp rising toward +Z
 	_box(Vector3(-60, 3, -40), Vector3(10, 0.5, 12), Vector3(60, 0, 0)) # 60 degree slope, downhill toward +Z
+	elevator = _platform(Vector3(-100, 0.25, -100), Vector3(0, 5, 0)) # Rises 5 m
+	shuttle = _platform(Vector3(-100, 0.25, -60), Vector3(8, 0, 0)) # Slides 8 m along +X
+
+
+## A 4 x 4 m platform that waits 0.5 s, travels [param travel] in 1 s, and waits again.
+func _platform(position: Vector3, travel: Vector3) -> MovingPlatform:
+	var platform := MovingPlatform.new()
+	platform.size = Vector3(4, 0.5, 4)
+	platform.travel = travel
+	platform.travel_time = 1.0
+	platform.pause_time = 0.5
+	platform.position = position
+	root.add_child(platform)
+	return platform
 
 
 func _box(position: Vector3, size: Vector3, rotation_degrees := Vector3.ZERO) -> void:
@@ -117,6 +142,7 @@ func place(position: Vector3, facing := Vector3.FORWARD) -> void:
 	player.teleport(Transform3D(Basis.looking_at(facing), position))
 	await frames(10)
 	history.clear()
+	steps = 0
 
 
 func tap(action: StringName) -> void:
@@ -550,6 +576,7 @@ func test_stairs() -> void:
 	await wait_for(func() -> bool: return player.global_position.z < -16.5, 3.0)
 	report("stairs height", player.global_position.y)
 	check(player.global_position.y > 1.95, "walked up the stairs")
+	check(steps >= 7, "each step is reported for smoothing (got %d)" % steps)
 	check(not history.has(&"WallSlide"), "never got stuck")
 	player.input.move = Vector3.ZERO
 
@@ -560,6 +587,7 @@ func test_walkable_ramp() -> void:
 	await wait_for(func() -> bool: return player.global_position.z > 42.0, 3.0)
 	report("ramp height", player.global_position.y)
 	check(player.global_position.y > 3.0, "ran up the ramp")
+	check(steps == 0, "slopes aren't mistaken for steps (got %d)" % steps)
 	check(player.state_name == &"Run", "still running")
 	player.input.move = Vector3.ZERO
 	await wait_for(grounded, 3.0)
@@ -569,3 +597,88 @@ func test_steep_slope() -> void:
 	await place(Vector3(-60, 8, -41))
 	check(await wait_for_state(&"SteepSlide", 2.0), "slides on a steep slope")
 	check(await wait_for(func() -> bool: return player.state_name in [&"Idle", &"Run"], 4.0), "slides off onto the floor")
+
+
+func test_elevator() -> void:
+	elevator.restart()
+	await place(Vector3(-100, 0.6, -100))
+	await seconds(1.6)
+	check(player.is_on_floor(), "still standing on the elevator")
+	check_near(player.global_position.y, 5.5, 0.1, "rides the elevator up")
+	check(steps == 0, "elevators aren't mistaken for steps (got %d)" % steps)
+
+
+func test_shuttle_platform() -> void:
+	shuttle.restart()
+	await place(Vector3(-100, 0.6, -60))
+	var start_x := player.global_position.x
+	await seconds(1.6)
+	check(player.is_on_floor(), "still standing on the shuttle")
+	check_near(player.global_position.x - start_x, 8.0, 0.25, "carried along by the shuttle")
+
+
+func test_long_jump_chain() -> void:
+	await place(Vector3(-150, 0, 150))
+	player.input.move = Vector3.FORWARD
+	await seconds(1.0)
+	player.input.press(&"crouch")
+	await frames(1)
+	await tap(&"jump")
+	# Keep crouch held through the landing: it slides straight into another long jump.
+	check(await wait_for_state(&"CrouchSlide", 2.0), "lands back in a crouch slide")
+	await tap(&"jump")
+	check(player.state_name == &"LongJump", "second long jump")
+	check(history.count(&"LongJump") == 2, "two long jumps in a row")
+	player.input.release(&"crouch")
+	player.input.move = Vector3.ZERO
+	await fly()
+
+
+func test_wall_let_go() -> void:
+	await place(Vector3(26, 0, 0), Vector3.RIGHT)
+	player.input.move = Vector3.RIGHT
+	player.input.press(&"jump")
+	check(await wait_for_state(&"WallSlide", 1.5), "on the wall")
+	player.input.release(&"jump")
+	player.input.move = Vector3.LEFT
+	check(await wait_for_state(&"Fall", 0.5), "holding away lets go")
+	check(player.velocity.x < 0.0, "pushes off the wall")
+	player.input.move = Vector3.ZERO
+	await wait_for(grounded, 2.0)
+
+
+func test_steep_slope_jump() -> void:
+	await place(Vector3(-60, 8, -41))
+	check(await wait_for_state(&"SteepSlide", 2.0), "sliding")
+	await tap(&"jump")
+	check(player.state_name == &"Jump", "jumps off the slope")
+	check(player.velocity.z > 1.0 and player.velocity.y > 1.0, "hops up and away from the slope")
+	await wait_for(grounded, 3.0)
+
+
+func test_belly_slide_off_ledge_rollout() -> void:
+	await place(Vector3(0, 2.2, 61))
+	player.input.move = Vector3.FORWARD
+	await seconds(0.1)
+	await tap(&"dive")
+	player.input.move = Vector3.ZERO
+	check(await wait_for_state(&"BellySlide", 1.5), "belly slide on the platform")
+	check(await wait_for_state(&"Dive", 2.0), "slides off the edge")
+	await tap(&"jump")
+	check(player.state_name == &"Rollout", "a late jump still rolls out")
+	await wait_for(grounded, 3.0)
+
+
+func test_skid_dive() -> void:
+	await place(Vector3(-100, 0, 100))
+	player.input.move = Vector3.FORWARD
+	await seconds(1.0)
+	player.input.move = Vector3.BACK
+	await frames(1)
+	check(player.state_name == &"Skid", "skidding")
+	await tap(&"dive")
+	check(player.state_name == &"Dive", "dives out of the skid")
+	check(player.velocity.z > s.dive_min_speed - 0.1, "dives the new way")
+	player.input.move = Vector3.ZERO
+	await wait_for_state(&"BellySlide", 2.0)
+	await seconds(1.0)
