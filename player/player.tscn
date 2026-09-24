@@ -1,0 +1,118 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://player/player.gd" id="1_player"]
+[ext_resource type="Resource" path="res://player/default_movement.tres" id="2_settings"]
+[ext_resource type="Script" path="res://player/states/state_machine.gd" id="3_machine"]
+[ext_resource type="Script" path="res://player/states/idle.gd" id="s0_idle"]
+[ext_resource type="Script" path="res://player/states/run.gd" id="s1_run"]
+[ext_resource type="Script" path="res://player/states/skid.gd" id="s2_skid"]
+[ext_resource type="Script" path="res://player/states/crouch.gd" id="s3_crouch"]
+[ext_resource type="Script" path="res://player/states/crouch_slide.gd" id="s4_crouch_slide"]
+[ext_resource type="Script" path="res://player/states/belly_slide.gd" id="s5_belly_slide"]
+[ext_resource type="Script" path="res://player/states/ground_pound_land.gd" id="s6_ground_pound_land"]
+[ext_resource type="Script" path="res://player/states/fall.gd" id="s7_fall"]
+[ext_resource type="Script" path="res://player/states/jump.gd" id="s8_jump"]
+[ext_resource type="Script" path="res://player/states/backflip.gd" id="s9_backflip"]
+[ext_resource type="Script" path="res://player/states/side_flip.gd" id="s10_side_flip"]
+[ext_resource type="Script" path="res://player/states/long_jump.gd" id="s11_long_jump"]
+[ext_resource type="Script" path="res://player/states/rollout.gd" id="s12_rollout"]
+[ext_resource type="Script" path="res://player/states/ground_pound_jump.gd" id="s13_ground_pound_jump"]
+[ext_resource type="Script" path="res://player/states/dive.gd" id="s14_dive"]
+[ext_resource type="Script" path="res://player/states/ground_pound.gd" id="s15_ground_pound"]
+[ext_resource type="Script" path="res://player/states/spin.gd" id="s16_spin"]
+[ext_resource type="Script" path="res://player/states/wall_slide.gd" id="s17_wall_slide"]
+[ext_resource type="Script" path="res://player/states/wall_kick.gd" id="s18_wall_kick"]
+[ext_resource type="Script" path="res://player/states/steep_slide.gd" id="s19_steep_slide"]
+[ext_resource type="Script" path="res://player/states/bonk.gd" id="s20_bonk"]
+[ext_resource type="Script" path="res://player/states/ledge_hang.gd" id="s21_ledge_hang"]
+[ext_resource type="Script" path="res://player/states/ledge_climb.gd" id="s22_ledge_climb"]
+[ext_resource type="Script" path="res://player/states/ledge_jump.gd" id="s23_ledge_jump"]
+
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_body"]
+height = 1.5
+radius = 0.35
+
+[node name="Player" type="CharacterBody3D"]
+collision_layer = 2
+script = ExtResource("1_player")
+settings = ExtResource("2_settings")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.75, 0)
+shape = SubResource("CylinderShape3D_body")
+
+[node name="StateMachine" type="Node" parent="." node_paths=PackedStringArray("initial_state")]
+script = ExtResource("3_machine")
+initial_state = NodePath("Idle")
+
+[node name="Idle" type="Node" parent="StateMachine"]
+script = ExtResource("s0_idle")
+
+[node name="Run" type="Node" parent="StateMachine"]
+script = ExtResource("s1_run")
+
+[node name="Skid" type="Node" parent="StateMachine"]
+script = ExtResource("s2_skid")
+
+[node name="Crouch" type="Node" parent="StateMachine"]
+script = ExtResource("s3_crouch")
+
+[node name="CrouchSlide" type="Node" parent="StateMachine"]
+script = ExtResource("s4_crouch_slide")
+
+[node name="BellySlide" type="Node" parent="StateMachine"]
+script = ExtResource("s5_belly_slide")
+
+[node name="GroundPoundLand" type="Node" parent="StateMachine"]
+script = ExtResource("s6_ground_pound_land")
+
+[node name="Fall" type="Node" parent="StateMachine"]
+script = ExtResource("s7_fall")
+
+[node name="Jump" type="Node" parent="StateMachine"]
+script = ExtResource("s8_jump")
+
+[node name="Backflip" type="Node" parent="StateMachine"]
+script = ExtResource("s9_backflip")
+
+[node name="SideFlip" type="Node" parent="StateMachine"]
+script = ExtResource("s10_side_flip")
+
+[node name="LongJump" type="Node" parent="StateMachine"]
+script = ExtResource("s11_long_jump")
+
+[node name="Rollout" type="Node" parent="StateMachine"]
+script = ExtResource("s12_rollout")
+
+[node name="GroundPoundJump" type="Node" parent="StateMachine"]
+script = ExtResource("s13_ground_pound_jump")
+
+[node name="Dive" type="Node" parent="StateMachine"]
+script = ExtResource("s14_dive")
+
+[node name="GroundPound" type="Node" parent="StateMachine"]
+script = ExtResource("s15_ground_pound")
+
+[node name="Spin" type="Node" parent="StateMachine"]
+script = ExtResource("s16_spin")
+
+[node name="WallSlide" type="Node" parent="StateMachine"]
+script = ExtResource("s17_wall_slide")
+
+[node name="WallKick" type="Node" parent="StateMachine"]
+script = ExtResource("s18_wall_kick")
+
+[node name="SteepSlide" type="Node" parent="StateMachine"]
+script = ExtResource("s19_steep_slide")
+
+[node name="Bonk" type="Node" parent="StateMachine"]
+script = ExtResource("s20_bonk")
+
+[node name="LedgeHang" type="Node" parent="StateMachine"]
+script = ExtResource("s21_ledge_hang")
+
+[node name="LedgeClimb" type="Node" parent="StateMachine"]
+script = ExtResource("s22_ledge_climb")
+
+[node name="LedgeJump" type="Node" parent="StateMachine"]
+script = ExtResource("s23_ledge_jump")
