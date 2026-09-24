@@ -132,6 +132,7 @@ inspector; each value has a tooltip. Camera settings are on the
 ```
 main/                 Entry scene: level + player + camera + HUD, respawn and stations
   game_state.gd       Autoload: coins, stars, checkpoint, time trials
+  warm_up.gd          Loading cover that precaches sounds and shaders
 player/
   player.gd           CharacterBody3D: input buffering and the helpers states share
   player_input.gd     Per-tick input snapshot (camera-relative; can be scripted)
@@ -163,6 +164,27 @@ tools/                Script that generated the movement gym
   2 = Player, 3 = Hittable (what attacks hit), 4 = Pickups.
 - One autoload, **`GameState`**, holds the run's progress and announces
   changes with signals; the HUD only listens to it.
+
+### No first-time stutter
+
+Godot compiles a material's shaders the first time it is drawn, and the
+level's sounds are synthesized the first time they play. Left alone, that
+stalls a frame the first time you land a ground pound, grab a coin, smash a
+crate or collect a star. So the game starts behind a brief black cover
+(`main/warm_up.gd`) that:
+
+- builds every procedural sound (`Synth.prepare()`),
+- draws one of each effect right in front of the camera for a few frames
+  (particles, the ground pound shockwave, crate debris, a collected star, a
+  raised checkpoint flag) so their shaders and pipelines compile then,
+- draws every character the HUD's clock and notifications use,
+
+then clears them away and fades in. Materials already in the level compile
+while it loads. If you add an effect or a material that first appears
+mid-game, give it a `warm_up()` and call it from `WarmUp.run()`;
+`tests/first_use_check.gd` (below) tells you if anything still compiles
+during play. Godot also keeps shader and pipeline caches on disk, so later
+launches load faster.
 
 ### How the character is put together
 
@@ -205,8 +227,8 @@ switch, put it on layer 3 and give it a `take_hit(hit: Dictionary)` method.
 
 ## Tests
 
-Four headless suites; run them from the project folder. The exit code is the
-number of failed checks.
+Four headless suites and one on-screen check; run them from the project
+folder. The exit code is the number of failed checks.
 
 ```sh
 # Every move: heights against the settings, distances, timed wall kicks,
@@ -222,6 +244,11 @@ godot --headless --fixed-fps 120 -s res://tests/gym_tests.gd
 
 # How much the camera moves on its own (--strict fails past the comfort limits).
 godot --headless --fixed-fps 60 -s res://tests/camera_metrics.gd -- --strict
+
+# First-time stutter: plays one of every effect-triggering event and reports
+# anything compiled during play and the slowest frame. Needs a real renderer
+# (no --headless); it opens a window.
+godot --fixed-fps 60 -s res://tests/first_use_check.gd
 ```
 
 Expected values are read from the settings, so the movement tests keep

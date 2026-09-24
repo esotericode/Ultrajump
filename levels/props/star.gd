@@ -53,6 +53,17 @@ func _process(delta: float) -> void:
 	_visual.position.y = sin(_phase * 2.0) * 0.12
 
 
+## Adds a collected (ghost) star under [param stage] (in view of the camera,
+## behind a loading screen), so its see-through material is compiled before
+## play instead of when the first star is collected.
+static func warm_up(stage: Node3D) -> void:
+	_build_resources()
+	var ghost := MeshInstance3D.new()
+	ghost.mesh = _mesh
+	ghost.material_override = _ghost
+	stage.add_child(ghost)
+
+
 ## Makes a hidden star appear (with a flourish).
 func reveal() -> void:
 	if _revealed:

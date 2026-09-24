@@ -12,6 +12,24 @@ static var _fade: Gradient
 
 ## Bright specks bursting out of [param at].
 static func sparkle(context: Node, at: Vector3, color: Color, amount := 12, speed := 4.0) -> void:
+	_launch(context, _sparkle(color, amount, speed), at)
+
+
+## Chunks of [param color] flying apart and tumbling down (a crate breaking).
+static func debris(context: Node, at: Vector3, color: Color, size: float) -> void:
+	_launch(context, _debris(color, size), at)
+
+
+## Fires one of each effect under [param stage] (in view of the camera, behind
+## a loading screen), so their shaders are compiled before play instead of
+## the first time a crate breaks or a coin is collected.
+static func warm_up(stage: Node3D) -> void:
+	for particles in [_sparkle(Color.WHITE, 4, 1.0), _debris(Color.WHITE, 0.5)]:
+		stage.add_child(particles)
+		particles.restart()
+
+
+static func _sparkle(color: Color, amount: int, speed: float) -> CPUParticles3D:
 	var particles := _particles(amount, 0.5)
 	if _speck == null:
 		_speck = SphereMesh.new()
@@ -36,11 +54,10 @@ static func sparkle(context: Node, at: Vector3, color: Color, amount := 12, spee
 	particles.scale_amount_min = 0.06
 	particles.scale_amount_max = 0.14
 	particles.color = color
-	_launch(context, particles, at)
+	return particles
 
 
-## Chunks of [param color] flying apart and tumbling down (a crate breaking).
-static func debris(context: Node, at: Vector3, color: Color, size: float) -> void:
+static func _debris(color: Color, size: float) -> CPUParticles3D:
 	var particles := _particles(14, 0.9)
 	if _chunk == null:
 		_chunk = BoxMesh.new()
@@ -64,7 +81,7 @@ static func debris(context: Node, at: Vector3, color: Color, size: float) -> voi
 	particles.scale_amount_max = size * 0.3
 	particles.color = color
 	particles.particle_flag_rotate_y = true
-	_launch(context, particles, at)
+	return particles
 
 
 ## A one-shot burst, not yet in the scene: configure it, then [method _launch] it.

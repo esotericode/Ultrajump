@@ -9,6 +9,8 @@ signal time_scale_changed(scale: float)
 
 const TIME_SCALES: Array[float] = [1.0, 0.5, 0.25, 0.1]
 const HISTORY_LENGTH := 8
+## Every character the time trial clock and the notifications can show.
+const GLYPHS := "ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz 0123456789 !.,:/()-★●·"
 
 const HELP := """[b]CONTROLS[/b]   keyboard · gamepad
 [color=#ffd479]WASD[/color] · L-stick   move
@@ -85,6 +87,20 @@ func _process(delta: float) -> void:
 	_clock.visible = not GameState.time_trial_course.is_empty()
 	if _clock.visible:
 		_clock.text = "%s   %.2f" % [GameState.time_trial_course, GameState.time_trial_time]
+
+
+## Draws every character the clock and notifications use, in their styles,
+## for a couple of frames (behind a loading screen), so the font renders
+## those glyphs now instead of when the first message pops up.
+func warm_up() -> void:
+	var samples: Array[Label] = [_big_label(26, Color.WHITE), _big_label(20, Color.WHITE)]
+	for sample in samples:
+		sample.text = GLYPHS
+		add_child(sample)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	for sample in samples:
+		sample.queue_free()
 
 
 ## Pops up a short notification at the top of the screen.

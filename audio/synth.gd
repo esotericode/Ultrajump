@@ -6,8 +6,13 @@ extends RefCounted
 ## needs no audio assets. [method sound] returns shared, cached level sounds
 ## (coins, stars, crates, springs); the player's own sounds live in
 ## PlayerAudio. Swap any of them for real recordings later.
+##
+## Generating a sound takes a few milliseconds, so [method prepare] builds
+## them all while the game loads rather than the first time each one plays.
 
 const RATE := 22050
+## Every sound [method sound] can build.
+const NAMES: Array[StringName] = [&"coin", &"star", &"reveal", &"crate", &"spring", &"checkpoint", &"sizzle", &"whistle"]
 
 static var _cache: Dictionary[StringName, AudioStreamWAV] = {}
 
@@ -17,6 +22,12 @@ static func sound(sound_name: StringName) -> AudioStreamWAV:
 	if not _cache.has(sound_name):
 		_cache[sound_name] = _build(sound_name)
 	return _cache[sound_name]
+
+
+## Builds every sound in [constant NAMES] now (call while loading).
+static func prepare() -> void:
+	for sound_name in NAMES:
+		sound(sound_name)
 
 
 ## Plays [param stream] at [param position] in the world of [param context],

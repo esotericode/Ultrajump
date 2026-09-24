@@ -16,8 +16,12 @@ var _dust_material: StandardMaterial3D
 var _sparkle_material: StandardMaterial3D
 var _fade_out: Gradient
 var _shrink: Curve
+var _ring_mesh: TorusMesh
+var _ring_material: StandardMaterial3D
 var _slide_dust: CPUParticles3D
 var _trail: CPUParticles3D
+## Where bursts go instead of the level while warming up.
+var _stage: Node3D
 
 
 func _ready() -> void:
@@ -38,6 +42,16 @@ func _ready() -> void:
 	_shrink = Curve.new()
 	_shrink.add_point(Vector2(0.0, 1.0))
 	_shrink.add_point(Vector2(1.0, 0.2))
+	# One material shared by every shockwave. Godot frees a shader once no
+	# material uses it, so a material per shockwave meant recompiling each time.
+	_ring_mesh = TorusMesh.new()
+	_ring_mesh.inner_radius = 0.85
+	_ring_mesh.outer_radius = 1.0
+	_ring_mesh.rings = 32
+	_ring_material = StandardMaterial3D.new()
+	_ring_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	_ring_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	_ring_material.albedo_color = Color(1, 1, 1, 0.85)
 
 	_slide_dust = _emitter(24, 0.45, 0.28, Color(0.92, 0.9, 0.86, 0.8))
 	_slide_dust.position = Vector3(0, 0.1, 0)
@@ -128,6 +142,17 @@ func _on_teleported() -> void:
 		(emitter as CPUParticles3D).emitting = false
 
 
+## Fires one of each burst under [param stage] (in view of the camera, behind
+## a loading screen), so their shaders are compiled before play instead of
+## on the first landing or ground pound.
+func warm_up(stage: Node3D) -> void:
+	_stage = stage
+	_ring_burst(stage.global_position, 4, 1.0, 0.2)
+	_sparkle_burst(stage.global_position, 4, 1.0)
+	_shockwave(stage.global_position)
+	_stage = null
+
+
 # --- Particle helpers ----------------------------------------------------------------
 
 ## A flat ring of dust puffs spreading out from [param at] (perpendicular to [param axis]).
@@ -171,23 +196,16 @@ func _sparkle_burst(at: Vector3, amount: int, speed: float, color := Color(1.0, 
 ## An expanding ring on the ground.
 func _shockwave(at: Vector3) -> void:
 	var ring := MeshInstance3D.new()
-	var torus := TorusMesh.new()
-	torus.inner_radius = 0.85
-	torus.outer_radius = 1.0
-	torus.rings = 32
-	ring.mesh = torus
-	var material := StandardMaterial3D.new()
-	material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	material.albedo_color = Color(1, 1, 1, 0.85)
-	ring.material_override = material
+	ring.mesh = _ring_mesh
+	ring.material_override = _ring_material
 	ring.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	_level().add_child(ring)
 	ring.global_position = at
 	ring.scale = Vector3(0.4, 0.3, 0.4)
 	var tween := ring.create_tween().set_parallel().set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
 	tween.tween_property(ring, "scale", Vector3(4.0, 0.3, 4.0), 0.4)
-	tween.tween_property(material, "albedo_color:a", 0.0, 0.4)
+	# Each ring fades on its own, without touching the shared material.
+	tween.tween_property(ring, "transparency", 1.0, 0.4)
 	tween.chain().tween_callback(ring.queue_free)
 
 
@@ -263,4 +281,6 @@ func _rumble(weak: float, strong: float, duration: float) -> void:
 
 ## Where one-shot effects are spawned: the player's parent (the level), so they stay in place.
 func _level() -> Node:
+	if _stage:
+		return _stage
 	return player.get_parent() if player.get_parent() else self

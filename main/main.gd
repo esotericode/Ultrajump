@@ -29,6 +29,11 @@ func _ready() -> void:
 	GameState.respawn_requested.connect(respawn, CONNECT_DEFERRED)
 	_capture_mouse()
 	go_to_station(0)
+	# A moment behind a black cover to build sounds and compile effect shaders,
+	# so nothing stutters the first time it happens.
+	var warm_up := WarmUp.new()
+	add_child(warm_up)
+	warm_up.run(player, hud)
 
 
 func _process(delta: float) -> void:
