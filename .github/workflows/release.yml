@@ -1,0 +1,33 @@
+# Publishes a GitHub release when a version tag (v1.2.3) is pushed.
+#
+# The tag's message becomes the release: its first line is the title and the
+# rest the notes (Markdown). Keep Markdown headings by tagging with
+# --cleanup=verbatim, which stops git from dropping lines that start with #:
+#   git tag -a v0.2.0 --cleanup=verbatim -F notes.md
+#   git push origin v0.2.0
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          # Checkout can leave the tag without its message; fetch the tag itself.
+          git fetch --force origin "refs/tags/$TAG:refs/tags/$TAG"
+          git tag --list "$TAG" --format='%(contents:body)' > notes.md
+          gh release create "$TAG" --verify-tag \
+            --title "$(git tag --list "$TAG" --format='%(contents:subject)')" \
+            --notes-file notes.md
